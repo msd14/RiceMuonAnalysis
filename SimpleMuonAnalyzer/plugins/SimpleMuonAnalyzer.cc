@@ -35,12 +35,15 @@ private:
 
   TTree *tree_;
   MyNtuple ntuple_;
+
+  bool verbose_;
 };
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
  :
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("recoMuon"))),
   emtfToken_(consumes<EMTFTrackCollection>(iConfig.getParameter<edm::InputTag>("emtfTrack")))
+  verbose_(consumes<bool>(iConfig.getParameter<bool>("verbose")))
 {
   tree_ = ntuple_.book(tree_, "Events");
 }
@@ -57,6 +60,8 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
    ntuple_.run = iEvent.id().run();
    ntuple_.lumi = iEvent.id().luminosityBlock();
    ntuple_.event = iEvent.id().event();
+
+   ntuple_.nEmtf = recoMuons.size();
 
    // basic reco muon analysis
    for(int i = 0; i < nMaxRecoMuons; i++) {

@@ -17,8 +17,9 @@ process.source = cms.Source(
   fileNames = cms.untracked.vstring('/store/user/mdecaro/SingleMuon/SingleMuon_Run2018A-17Sep2018-v2_AOD/191004_152709/0000/Filter_1.root'),
 )
 
-process.SimpleMuonAnalyzer = cms.EDAnalyzer("SimpleMuonAnalyzer",
-    verbose = cms.untracked.int32(0),
+process.SimpleMuonAnalyzer = cms.EDAnalyzer(
+    "SimpleMuonAnalyzer",
+    verbose = cms.bool(False)
 )
 
 process.TFileService = cms.Service(

@@ -19,6 +19,9 @@ struct MyNtuple
   int run;
   int event;
 
+  // number of EMTF tracks
+  int nEmtf;
+
   float emtf_pt[nMaxEmtfMuons];
   float emtf_eta[nMaxEmtfMuons];
   float emtf_phi[nMaxEmtfMuons];
@@ -37,6 +40,8 @@ void MyNtuple::init()
   lumi = -99;
   run = -99;
   event = -99;
+
+  nEmtf = 0;
 
   for (unsigned i=0; i<nMaxEmtfMuons; ++i){
     emtf_pt[i]= -99;
@@ -63,6 +68,8 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("lumi", &lumi);
   t->Branch("run", &run);
   t->Branch("event", &event);
+
+  t->Branch("nEmtf", &nEmtf);
 
   t->Branch("emtf_pt",emtf_pt,"emtf_pt[nMaxEmtfMuons]/F");
   t->Branch("emtf_eta",emtf_eta,"emtf_eta[nMaxEmtfMuons]/F");
