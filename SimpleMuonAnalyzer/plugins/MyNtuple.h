@@ -6,7 +6,7 @@
 #include <string>
 
 const int nMaxRecoMuons = 2;
-const int nMaxEmtfMuons = 2;
+const int nMaxEmtfMuons = 8;
 
 namespace{
 
@@ -15,9 +15,9 @@ struct MyNtuple
   void init(); // initialize to default values
   TTree* book(TTree *t, const std::string & name = "trk_eff");
 
-  Int_t lumi;
-  Int_t run;
-  Int_t event;
+  int lumi;
+  int run;
+  int event;
 
   float emtf_pt[nMaxEmtfMuons];
   float emtf_eta[nMaxEmtfMuons];
@@ -73,8 +73,8 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("reco_eta",reco_eta,"reco_eta[nMaxRecoMuons]/F");
   t->Branch("reco_phi",reco_phi,"reco_phi[nMaxRecoMuons]/F");
   t->Branch("reco_charge",reco_charge,"reco_charge[nMaxRecoMuons]/I");
-  t->Branch("reco_isMediumMuon",reco_isMediumMuon,"reco_isMediumMuon[nMaxRecoMuons]/F");
-  t->Branch("reco_hasEMTFMatch",reco_hasEMTFMatch,"reco_hasEMTFMatch[nMaxRecoMuons]/F");
+  t->Branch("reco_isMediumMuon",reco_isMediumMuon,"reco_isMediumMuon[nMaxRecoMuons]/I");
+  t->Branch("reco_hasEMTFMatch",reco_hasEMTFMatch,"reco_hasEMTFMatch[nMaxRecoMuons]/I");
 
   return t;
 }

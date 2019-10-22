@@ -68,11 +68,11 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
      ntuple_.reco_eta[i] = recoMuon.eta();
      ntuple_.reco_phi[i] = recoMuon.phi();
      ntuple_.reco_charge[i] = recoMuon.charge();
-     ntuple_.reco_charge[i] = int(muon::isMediumMuon(recoMuon));
+     ntuple_.reco_hasEMTFMatch[i] = int(muon::isMediumMuon(recoMuon));
    }
 
    // basic l1 muon analysis
-   for(int i = 0; i < nMaxEmtfMuons; i++) {
+   for(unsigned i = 0; i < emtfTracks.size(); i++) {
 
      const auto& emtfTrack = emtfTracks.at(i);
 
