@@ -13,10 +13,13 @@
 
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "DataFormats/L1TMuon/interface/EMTFTrack.h"
+#include "DataFormats/Math/interface/deltaR.h"
+
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
 
-using reco::TrackCollection;
+using reco::MuonCollection;
 using l1t::EMTFTrackCollection;
 
 class SimpleMuonAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
@@ -27,7 +30,7 @@ public:
 private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
 
-  edm::EDGetTokenT<TrackCollection> recoMuonToken_;
+  edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<EMTFTrackCollection> emtfToken_;
 
   TTree *tree_;
@@ -36,7 +39,7 @@ private:
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
  :
-  recoMuonToken_(consumes<TrackCollection>(iConfig.getParameter<edm::InputTag>("recoMuon"))),
+  recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("recoMuon"))),
   emtfToken_(consumes<EMTFTrackCollection>(iConfig.getParameter<edm::InputTag>("emtfTrack")))
 {
   tree_ = ntuple_.book(tree_, "Events");
@@ -55,21 +58,32 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
    ntuple_.lumi = iEvent.id().luminosityBlock();
    ntuple_.event = iEvent.id().event();
 
+   // basic reco muon analysis
    for(int i = 0; i < nMaxRecoMuons; i++) {
 
      const auto& recoMuon = recoMuons.at(i);
 
-     // fill basis muon quantities
-     ntuple_.reco_pt[i] =
-     ntuple_.phi = t.momentum().phi();
-     ntuple_.eta = t.momentum().eta();
-     ntuple_.charge = t.charge();
+     // fill basic muon quantities
+     ntuple_.reco_pt[i] = recoMuon.pt();
+     ntuple_.reco_eta[i] = recoMuon.eta();
+     ntuple_.reco_phi[i] = recoMuon.phi();
+     ntuple_.reco_charge[i] = recoMuon.charge();
+     ntuple_.reco_charge[i] = int(muon::isMediumMuon(recoMuon));
    }
 
-   for(const auto& emtf : iEvent.get(emtfToken_) ) {
-      // do something with track parameters, e.g, plot the charge.
-      // int charge = track.charge();
+   // basic l1 muon analysis
+   for(int i = 0; i < nMaxEmtfMuons; i++) {
+
+     const auto& emtfTrack = emtfTracks.at(i);
+
+     ntuple_.emtf_pt[i] = emtfTrack.Pt();
+     ntuple_.emtf_eta[i] = emtfTrack.Eta();
+     ntuple_.emtf_phi[i] = emtfTrack.Phi_glob();
+     ntuple_.emtf_charge[i] = emtfTrack.Charge();
    }
+
+   // match reco muons to emtf tracks
+   // Matthew: please add your code here...
 
    // fill tree
    tree_->Fill();
