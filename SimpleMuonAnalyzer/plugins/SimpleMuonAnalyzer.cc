@@ -44,7 +44,7 @@ private:
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
  :
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
-  emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("gmtStage2Digis:EMTF"))),
+  emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
   verbose_(iConfig.getParameter<bool>("verbose"))
 {
   tree_ = ntuple_.book(tree_, "Events");
