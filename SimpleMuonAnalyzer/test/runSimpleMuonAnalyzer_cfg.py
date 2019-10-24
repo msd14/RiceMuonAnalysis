@@ -19,7 +19,9 @@ process.source = cms.Source(
 
 process.SimpleMuonAnalyzer = cms.EDAnalyzer(
     "SimpleMuonAnalyzer",
-    verbose = cms.bool(False)
+    verbose = cms.bool(False),
+    muons = cms.InputTag("muons"),
+    emtf = cms.InputTag("gmtStage2Digis","EMTF"),
 )
 
 process.TFileService = cms.Service(
