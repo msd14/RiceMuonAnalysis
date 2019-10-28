@@ -90,7 +90,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
        const auto& emtfTrack = *cand;
 
        // https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
-       ntuple_.emtf_pt[i] = emtfTrack.hwPt()*2;
+       ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
        ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
        ntuple_.emtf_phi[i] = emtfTrack.hwPhi()*2*M_PI/576;
        ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
