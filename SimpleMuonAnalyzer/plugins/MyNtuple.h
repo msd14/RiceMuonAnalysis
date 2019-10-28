@@ -26,6 +26,7 @@ struct MyNtuple
   float emtf_eta[nMaxEmtfMuons];
   float emtf_phi[nMaxEmtfMuons];
   float emtf_charge[nMaxEmtfMuons];
+  float emtf_quality[nMaxEmtfMuons];
 
   float reco_pt[nMaxRecoMuons];
   float reco_eta[nMaxRecoMuons];
@@ -48,6 +49,7 @@ void MyNtuple::init()
     emtf_eta[i] = -99.;
     emtf_phi[i]= -99;
     emtf_charge[i] = - 99;
+    emtf_quality[i] = - 99;
   }
   for (unsigned i=0; i<nMaxRecoMuons; ++i){
     reco_pt[i]= -99;
@@ -71,10 +73,11 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
 
   t->Branch("nEmtf", &nEmtf);
 
-  t->Branch("emtf_pt",emtf_pt,"emtf_pt[nMaxEmtfMuons]/F");
-  t->Branch("emtf_eta",emtf_eta,"emtf_eta[nMaxEmtfMuons]/F");
-  t->Branch("emtf_phi",emtf_phi,"emtf_phi[nMaxEmtfMuons]/F");
-  t->Branch("emtf_charge",emtf_charge,"emtf_charge[nMaxEmtfMuons]/I");
+  t->Branch("emtf_pt",emtf_pt,"emtf_pt[nEmtf]/F");
+  t->Branch("emtf_eta",emtf_eta,"emtf_eta[nEmtf]/F");
+  t->Branch("emtf_phi",emtf_phi,"emtf_phi[nEmtf]/F");
+  t->Branch("emtf_charge",emtf_charge,"emtf_charge[nEmtf]/I");
+  t->Branch("emtf_quality",emtf_charge,"emtf_quality[nEmtf]/I");
 
   t->Branch("reco_pt",reco_pt,"reco_pt[nMaxRecoMuons]/F");
   t->Branch("reco_eta",reco_eta,"reco_eta[nMaxRecoMuons]/F");

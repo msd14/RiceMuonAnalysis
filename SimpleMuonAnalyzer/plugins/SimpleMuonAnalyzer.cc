@@ -18,6 +18,7 @@
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
 #include "DataFormats/L1TMuon/interface/EMTFTrack.h"
 #include "DataFormats/Math/interface/deltaR.h"
+#include "L1Trigger/L1TMuon/interface/MicroGMTConfiguration.h"
 
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
 
@@ -92,10 +93,12 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
        // https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
        ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
        ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
-       ntuple_.emtf_phi[i] = emtfTrack.hwPhi()*2*M_PI/576;
+       int globalphi =  l1t::MicroGMTConfiguration::calcGlobalPhi(emtfTrack.hwPhi(),
+                                                                  emtfTrack.trackFinderType(),
+                                                                  emtfTrack.processor());
+       ntuple_.emtf_phi[i] = globalphi*2*M_PI/576;
        ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
-
-       // Matthew: add quality to the branch
+       ntuple_.emtf_quality[i] = emtfTrack.hwQual();
 
        i++;
      }
