@@ -14,7 +14,9 @@ process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 process.source = cms.Source(
   "PoolSource",
-  fileNames = cms.untracked.vstring('/store/user/mdecaro/SingleMuon/SingleMuon_Run2018A-17Sep2018-v2_AOD/191004_152709/0000/Filter_1.root'),
+  fileNames = cms.untracked.vstring(
+      '/store/user/mdecaro/SingleMuon/SingleMuon_Run2018A-17Sep2018-v2_AOD/191004_152709/0000/Filter_1.root'
+  ),
 )
 
 process.SimpleMuonAnalyzer = cms.EDAnalyzer(

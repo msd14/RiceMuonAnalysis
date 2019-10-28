@@ -21,6 +21,7 @@ struct MyNtuple
 
   // number of EMTF tracks
   int nEmtf;
+  int nRecoMuon;
 
   float emtf_pt[nMaxEmtfMuons];
   float emtf_eta[nMaxEmtfMuons];
@@ -43,6 +44,7 @@ void MyNtuple::init()
   event = -99;
 
   nEmtf = 0;
+  nRecoMuon = 0;
 
   for (unsigned i=0; i<nMaxEmtfMuons; ++i){
     emtf_pt[i]= -99;
@@ -72,6 +74,7 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("event", &event);
 
   t->Branch("nEmtf", &nEmtf);
+  t->Branch("nRecoMuon", &nRecoMuon);
 
   t->Branch("emtf_pt",emtf_pt,"emtf_pt[nEmtf]/F");
   t->Branch("emtf_eta",emtf_eta,"emtf_eta[nEmtf]/F");
@@ -79,12 +82,12 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("emtf_charge",emtf_charge,"emtf_charge[nEmtf]/I");
   t->Branch("emtf_quality",emtf_charge,"emtf_quality[nEmtf]/I");
 
-  t->Branch("reco_pt",reco_pt,"reco_pt[nMaxRecoMuons]/F");
-  t->Branch("reco_eta",reco_eta,"reco_eta[nMaxRecoMuons]/F");
-  t->Branch("reco_phi",reco_phi,"reco_phi[nMaxRecoMuons]/F");
-  t->Branch("reco_charge",reco_charge,"reco_charge[nMaxRecoMuons]/I");
-  t->Branch("reco_isMediumMuon",reco_isMediumMuon,"reco_isMediumMuon[nMaxRecoMuons]/I");
-  t->Branch("reco_hasEMTFMatch",reco_hasEMTFMatch,"reco_hasEMTFMatch[nMaxRecoMuons]/I");
+  t->Branch("reco_pt",reco_pt,"reco_pt[nRecoMuon]/F");
+  t->Branch("reco_eta",reco_eta,"reco_eta[nRecoMuon]/F");
+  t->Branch("reco_phi",reco_phi,"reco_phi[nRecoMuon]/F");
+  t->Branch("reco_charge",reco_charge,"reco_charge[nRecoMuon]/I");
+  t->Branch("reco_isMediumMuon",reco_isMediumMuon,"reco_isMediumMuon[nRecoMuon]/I");
+  t->Branch("reco_hasEMTFMatch",reco_hasEMTFMatch,"reco_hasEMTFMatch[nRecoMuon]/I");
 
   return t;
 }

@@ -9,6 +9,7 @@
 <use name="Utilities/General"/>
 <use name="DataFormats/MuonDetId"/>
 <use name="DataFormats/L1TMuon"/>
+<use name="L1Trigger/L1TMuon"/>
 <use name="DataFormats/RecoCandidate"/>
 <use name="DataFormats/MuonReco"/>
 <use name="DataFormats/Math"/>
