@@ -44,7 +44,7 @@ private:
 };
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
- :
+  :
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
   verbose_(iConfig.getParameter<bool>("verbose"))
@@ -56,61 +56,64 @@ SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
 void
 SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-   using namespace edm;
+  // initialize all variables
+  ntuple_.init();
 
-   const auto& recoMuons = iEvent.get(recoMuonToken_);
-   const auto& emtfTracks = iEvent.get(emtfToken_);
+  using namespace edm;
 
-   ntuple_.run = iEvent.id().run();
-   ntuple_.lumi = iEvent.id().luminosityBlock();
-   ntuple_.event = iEvent.id().event();
+  const auto& recoMuons = iEvent.get(recoMuonToken_);
+  const auto& emtfTracks = iEvent.get(emtfToken_);
 
-   ntuple_.nRecoMuon = recoMuons.size();
+  ntuple_.run = iEvent.id().run();
+  ntuple_.lumi = iEvent.id().luminosityBlock();
+  ntuple_.event = iEvent.id().event();
 
-   // basic reco muon analysis
-   for(int i = 0; i < nMaxRecoMuons; i++) {
+  ntuple_.nRecoMuon = recoMuons.size();
 
-     const auto& recoMuon = recoMuons.at(i);
+  // basic reco muon analysis
+  for(int i = 0; i < nMaxRecoMuons; i++) {
 
-     // fill basic muon quantities
-     ntuple_.reco_pt[i] = recoMuon.pt();
-     ntuple_.reco_eta[i] = recoMuon.eta();
-     ntuple_.reco_phi[i] = recoMuon.phi();
-     ntuple_.reco_charge[i] = recoMuon.charge();
-     // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
-     ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
-   }
+    const auto& recoMuon = recoMuons.at(i);
 
-   // basic l1 muon analysis
+    // fill basic muon quantities
+    ntuple_.reco_pt[i] = recoMuon.pt();
+    ntuple_.reco_eta[i] = recoMuon.eta();
+    ntuple_.reco_phi[i] = recoMuon.phi();
+    ntuple_.reco_charge[i] = recoMuon.charge();
+    // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
+    ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
+  }
 
-   int i = 0;
-   for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
+  // basic l1 muon analysis
 
-     if ( bx != 0) continue;
+  int i = 0;
+  for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
 
-     for (auto cand = emtfTracks.begin(bx); cand != emtfTracks.end(bx); ++cand ){
+    if ( bx != 0) continue;
 
-       const auto& emtfTrack = *cand;
+    for (auto cand = emtfTracks.begin(bx); cand != emtfTracks.end(bx); ++cand ){
 
-       // https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
-       ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
-       ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
-       int globalphi = l1t::MicroGMTConfiguration::calcGlobalPhi(emtfTrack.hwPhi(),
-                                                                 emtfTrack.trackFinderType(),
-                                                                 emtfTrack.processor());
-       ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
-       ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
-       ntuple_.emtf_quality[i] = emtfTrack.hwQual();
+      const auto& emtfTrack = *cand;
 
-       i++;
-     }
-   }
-   ntuple_.nEmtf = i;
-   // match reco muons to emtf tracks
-   // Matthew: please add your code here...
+      // https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
+      ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
+      ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
+      int globalphi = l1t::MicroGMTConfiguration::calcGlobalPhi(emtfTrack.hwPhi(),
+                                                                emtfTrack.trackFinderType(),
+                                                                emtfTrack.processor());
+      ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
+      ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
+      ntuple_.emtf_quality[i] = emtfTrack.hwQual();
 
-   // fill tree
-   tree_->Fill();
+      i++;
+    }
+  }
+  ntuple_.nEmtf = i;
+  // match reco muons to emtf tracks
+  // Matthew: please add your code here...
+
+  // fill tree
+  tree_->Fill();
 }
 //define this as a plug-in
 DEFINE_FWK_MODULE(SimpleMuonAnalyzer);
