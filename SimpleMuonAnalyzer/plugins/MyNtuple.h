@@ -80,7 +80,7 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("emtf_eta",emtf_eta,"emtf_eta[nEmtf]/F");
   t->Branch("emtf_phi",emtf_phi,"emtf_phi[nEmtf]/F");
   t->Branch("emtf_charge",emtf_charge,"emtf_charge[nEmtf]/I");
-  t->Branch("emtf_quality",emtf_charge,"emtf_quality[nEmtf]/I");
+  t->Branch("emtf_quality",emtf_quality,"emtf_quality[nEmtf]/I");
 
   t->Branch("reco_pt",reco_pt,"reco_pt[nRecoMuon]/F");
   t->Branch("reco_eta",reco_eta,"reco_eta[nRecoMuon]/F");
