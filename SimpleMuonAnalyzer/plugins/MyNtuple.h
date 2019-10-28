@@ -26,13 +26,13 @@ struct MyNtuple
   float emtf_pt[nMaxEmtfMuons];
   float emtf_eta[nMaxEmtfMuons];
   float emtf_phi[nMaxEmtfMuons];
-  float emtf_charge[nMaxEmtfMuons];
-  float emtf_quality[nMaxEmtfMuons];
+  int emtf_charge[nMaxEmtfMuons];
+  int emtf_quality[nMaxEmtfMuons];
 
   float reco_pt[nMaxRecoMuons];
   float reco_eta[nMaxRecoMuons];
   float reco_phi[nMaxRecoMuons];
-  float reco_charge[nMaxRecoMuons];
+  int reco_charge[nMaxRecoMuons];
   int reco_isMediumMuon[nMaxRecoMuons];
   int reco_hasEMTFMatch[nMaxRecoMuons];
 };
