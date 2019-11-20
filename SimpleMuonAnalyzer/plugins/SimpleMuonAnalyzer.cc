@@ -79,34 +79,53 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
   ntuple_.nRecoMuon = recoMuons.size();
   
-  reco::Track recoTrack;
+  
 
   // basic reco muon analysis
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
     const auto& recoMuon = recoMuons.at(i);
 
+    reco::Track recoTrack;
     
-    if (recoMuon.isGlobalMuon()) {
+    if (!recoMuon.isGlobalMuon()) continue; // and !recoMuon.isStandAloneMuon()) continue;
+    
+    recoTrack = recoMuon.globalTrack();
+    const auto& trackrechits = recoTrack.recHits();
+  
+    for (const auto& r : trackrechits){
+      std::cout << r->type() << endl;
+      //r->geoId();
+    }
+        
+    
+    
+    
+    
+    /*
+    if (recoMuon.isGlobalMuon()){
       const auto& recoTrack = recoMuon.globalTrack();
+      //const auto& trackrechits = recoTrack.recHits();
+    }
+
+
+    if (recoMuon.isGlobalMuon()) {      
+      //reco::Track recoTrack;
+      //const auto& recoTrack = recoMuon.globalTrack();
+      const auto& trackrechits = recoTrack.recHits();
     }
 
     else if (recoMuon.isStandAloneMuon()) {
       const auto& recoTrack = recoMuon.outerTrack();
+      //const auto& trackrechits = recoTrack.recHits();
     }
     
-    else {
+    else { 
       continue;
     }
+*/
     
-    const auto& trackrechits = recoTrack.recHits();
-    
-//     for (const auto& r : trackrechits){
-//       std::cout << r->type() << endl;
-//       //r->geoId();
-//     }
-    
-    
+     
     // fill basic muon quantities
     ntuple_.reco_pt[i] = recoMuon.pt();
     ntuple_.reco_eta[i] = recoMuon.eta();
@@ -151,9 +170,12 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.nEmtf = i;
   // match reco muons to emtf tracks
  
-      
+
   // fill tree
   tree_->Fill();
 }
+
+
+
 //define this as a plug-in
 DEFINE_FWK_MODULE(SimpleMuonAnalyzer);
