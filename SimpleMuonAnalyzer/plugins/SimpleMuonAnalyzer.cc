@@ -22,6 +22,7 @@
 #include "L1Trigger/L1TMuon/interface/MicroGMTConfiguration.h"
 
 #include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
 
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
@@ -41,7 +42,8 @@ private:
   edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
-
+  
+  
   TTree *tree_;
   MyNtuple ntuple_;
 
@@ -50,12 +52,14 @@ private:
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
   :
+  cscSegmentToken_(consumes<CSCSegmentCollection>(iConfig.getParameter<edm::InputTag>("cscSegments"))),
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
   verbose_(iConfig.getParameter<bool>("verbose"))
 {
   tree_ = ntuple_.book(tree_, "Events");
 }
+
 
 // ------------ method called for each event  ------------
 void
@@ -65,8 +69,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.init();
 
   using namespace edm;
-
-  const auto& cscSegments = iEvent.get(cscSegmentToken_);
+ 
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
 
@@ -75,18 +78,27 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.event = iEvent.id().event();
 
   ntuple_.nRecoMuon = recoMuons.size();
+  
+  reco::Track muonTrack;
 
   // basic reco muon analysis
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
     const auto& recoMuon = recoMuons.at(i);
-    const auto& cscSegment = cscSegments.at(i);
+    
+    if (recoMuon.isGlobalMuon()) const auto& muonTrack = recoMuon.globalTrack();
 
+    if (recoMuon.isStandAloneMuon()) const auto& muonTrack = recoMuon.outerTrack();
+    
+    const auto& trackrechits = recoTrack.TrackingRecHit();
+    
+    
     // fill basic muon quantities
     ntuple_.reco_pt[i] = recoMuon.pt();
     ntuple_.reco_eta[i] = recoMuon.eta();
     ntuple_.reco_phi[i] = recoMuon.phi();
     ntuple_.reco_charge[i] = recoMuon.charge();
+   
     // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
     ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
     
