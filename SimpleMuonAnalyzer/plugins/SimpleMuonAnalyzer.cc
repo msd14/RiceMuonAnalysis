@@ -21,8 +21,12 @@
 #include "DataFormats/Math/interface/normalizedPhi.h"
 #include "L1Trigger/L1TMuon/interface/MicroGMTConfiguration.h"
 
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
+
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
 
+//using reco::recHitContainer;
 using reco::MuonCollection;
 using l1t::RegionalMuonCandBxCollection;
 
@@ -34,6 +38,7 @@ public:
 private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
 
+  edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
 
@@ -61,6 +66,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
   using namespace edm;
 
+  const auto& cscSegments = iEvent.get(cscSegmentToken_);
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
 
@@ -74,6 +80,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
     const auto& recoMuon = recoMuons.at(i);
+    const auto& cscSegment = cscSegments.at(i);
 
     // fill basic muon quantities
     ntuple_.reco_pt[i] = recoMuon.pt();
@@ -82,9 +89,13 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     ntuple_.reco_charge[i] = recoMuon.charge();
     // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
     ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
+    
+    ntuple_.reco_hasEMTFMatch[i] = 0;
   }
 
   // basic l1 muon analysis
+  
+  int count = 0;
 
   int i = 0;
   for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
@@ -104,14 +115,17 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
       ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
       ntuple_.emtf_quality[i] = emtfTrack.hwQual();
+      
+      count+=1;
 
       i++;
     }
   }
+  
   ntuple_.nEmtf = i;
   // match reco muons to emtf tracks
-  // Matthew: please add your code here...
-
+ 
+      
   // fill tree
   tree_->Fill();
 }
