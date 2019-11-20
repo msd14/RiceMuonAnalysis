@@ -79,18 +79,32 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
   ntuple_.nRecoMuon = recoMuons.size();
   
-  reco::Track muonTrack;
+  reco::Track recoTrack;
 
   // basic reco muon analysis
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
     const auto& recoMuon = recoMuons.at(i);
-    
-    if (recoMuon.isGlobalMuon()) const auto& muonTrack = recoMuon.globalTrack();
 
-    if (recoMuon.isStandAloneMuon()) const auto& muonTrack = recoMuon.outerTrack();
     
-    const auto& trackrechits = recoTrack.TrackingRecHit();
+    if (recoMuon.isGlobalMuon()) {
+      const auto& recoTrack = recoMuon.globalTrack();
+    }
+
+    else if (recoMuon.isStandAloneMuon()) {
+      const auto& recoTrack = recoMuon.outerTrack();
+    }
+    
+    else {
+      continue;
+    }
+    
+    const auto& trackrechits = recoTrack.recHits();
+    
+//     for (const auto& r : trackrechits){
+//       std::cout << r->type() << endl;
+//       //r->geoId();
+//     }
     
     
     // fill basic muon quantities
