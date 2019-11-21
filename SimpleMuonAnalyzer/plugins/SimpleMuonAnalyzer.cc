@@ -27,7 +27,36 @@
 
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
 
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "TrackingTools/GeomPropagators/interface/Propagator.h"
+
+#include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
+#include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "DataFormats/GeometrySurface/interface/Cylinder.h"
+
+static const float AVERAGE_GEM_Z(568.6); // [cm]
+
+static const float AVERAGE_GE11_ODD_Z(568.6); // [cm]
+static const float AVERAGE_GE11_EVEN_Z(568.6); // [cm]
+
+static const float AVERAGE_GE21_LONG_Z(568.6); // [cm]
+static const float AVERAGE_GE21_SHORT_Z(568.6); // [cm]
+
+static const float AVERAGE_ME11_EVEN_Z(585); // [cm]
+static const float AVERAGE_ME11_ODD_Z(615); // [cm]
+
+static const float AVERAGE_ME21_EVEN_Z(820); // [cm]
+static const float AVERAGE_ME21_ODD_Z(835); // [cm]
+
+static const float AVERAGE_ME0_Z(568.6); // [cm]
+
+static const float AVERAGE_DT1_R(440); // [cm] for Barrel
+static const float AVERAGE_DT2_R(523);
+
 //using reco::recHitContainer;
+
 using reco::MuonCollection;
 using l1t::RegionalMuonCandBxCollection;
 
@@ -39,11 +68,20 @@ public:
 private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
 
+  /// general interface to propagation
+  GlobalPoint propagateToZ(const GlobalPoint &inner_point, const GlobalVector &inner_vector, float z, int charge) const;
+
+  /// general interface to propagation
+  GlobalPoint propagateToR(const GlobalPoint &inner_point, const GlobalVector &inner_vector, float r, int charge) const;
+
   edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
-  
-  
+
+  edm::ESHandle<MagneticField> magfield_;
+  edm::ESHandle<Propagator> propagator_;
+  edm::ESHandle<Propagator> propagatorOpposite_;
+
   TTree *tree_;
   MyNtuple ntuple_;
 
@@ -65,11 +103,18 @@ SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
 void
 SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
+  // Get the magnetic field
+  iSetup.get<IdealMagneticFieldRecord>().get(magfield_);
+
+  // Get the propagators
+  iSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAlong", propagator_);
+  iSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorOpposite", propagatorOpposite_);
+
   // initialize all variables
   ntuple_.init();
 
   using namespace edm;
- 
+
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
 
@@ -78,58 +123,45 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.event = iEvent.id().event();
 
   ntuple_.nRecoMuon = recoMuons.size();
-  
-  
-
+ 
   // basic reco muon analysis
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
     const auto& recoMuon = recoMuons.at(i);
 
-    reco::Track recoTrack;
-    
-    if (!recoMuon.isGlobalMuon()) continue; // and !recoMuon.isStandAloneMuon()) continue;
-    
-    recoTrack = recoMuon.globalTrack();
-    const auto& trackrechits = recoTrack.recHits();
-  
-    for (const auto& r : trackrechits){
-      std::cout << r->type() << endl;
-      //r->geoId();
-    }
-        
-    
-    
-    
-    
+    // propagate the muon to the second muon endcap station
+    const auto& muon_point = GlobalPoint(recoMuon.vertex().x(), recoMuon.vertex().y(), recoMuon.vertex().z());;
+    const auto& muon_vector = GlobalVector(recoMuon.momentum().x(), recoMuon.momentum().y(), recoMuon.momentum().z());
+
+    // pick a Z position
+    const auto& zStation2( recoMuon.eta() > 0 ? AVERAGE_ME21_EVEN_Z : -AVERAGE_ME21_EVEN_Z );
+
+    const GlobalPoint& prop_point(propagateToZ(muon_point, muon_vector,
+                                               zStation2, recoMuon.charge()));
+
+    std::cout << "muon pt " << recoMuon.pt() << std::endl;
+    std::cout << "\tmuon eta " << recoMuon.eta() << " " << "muon phi " <<recoMuon.phi() << std::endl;
+    std::cout << "\tmuon prop eta " << prop_point.eta() << " " << "muon prop phi " <<prop_point.phi() << std::endl << std::endl;
     /*
-    if (recoMuon.isGlobalMuon()){
-      const auto& recoTrack = recoMuon.globalTrack();
-      //const auto& trackrechits = recoTrack.recHits();
-    }
+    // ignore tracker muons
+    if (!recoMuon.isGlobalMuon() and !recoMuon.isStandAloneMuon())
+    continue;
 
+    const auto& muonTrack = recoMuon.isGlobalMuon() ? recoMuon.globalTrack() : recoMuon.outerTrack();
 
-    if (recoMuon.isGlobalMuon()) {      
-      //reco::Track recoTrack;
-      //const auto& recoTrack = recoMuon.globalTrack();
-      const auto& trackrechits = recoTrack.recHits();
-    }
+    const auto& trackrechits = muonTrack->recHits();
 
-    else if (recoMuon.isStandAloneMuon()) {
-      const auto& recoTrack = recoMuon.outerTrack();
-      //const auto& trackrechits = recoTrack.recHits();
+    for (const auto& r : trackrechits){
+    std::cout << "rechit " << r->type() << endl;
     }
-    
-    else { 
-      continue;
-    }
-*/
-    
-     
+    */
+
     // fill basic muon quantities
     ntuple_.reco_pt[i] = recoMuon.pt();
     ntuple_.reco_eta[i] = recoMuon.eta();
     ntuple_.reco_phi[i] = recoMuon.phi();
+    ntuple_.reco_eta_prop[i] = prop_point.eta();
+    ntuple_.reco_phi_prop[i] = prop_point.phi();
     ntuple_.reco_charge[i] = recoMuon.charge();
    
     // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
@@ -175,7 +207,40 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   tree_->Fill();
 }
 
+GlobalPoint
+SimpleMuonAnalyzer::propagateToZ(const GlobalPoint &inner_point,
+                                const GlobalVector &inner_vec, float z, int charge) const
+{
+  Plane::PositionType pos(0.f, 0.f, z);
+  Plane::RotationType rot;
+  Plane::PlanePointer my_plane(Plane::build(pos, rot));
 
+  FreeTrajectoryState state_start(inner_point, inner_vec, charge, &*magfield_);
+  std::cout <<"state_start  position "<< state_start.position()<<" momentum "<< state_start.momentum()<<" charge "<<state_start.charge() << std::endl;
+  if (state_start.hasError()) std::cout <<"state_start has error  "<< std::endl;
+
+  TrajectoryStateOnSurface tsos(propagator_->propagate(state_start, *my_plane));
+  //  if (!tsos.isValid()) std::cout <<" tsos not valid "<< std::endl;
+  if (!tsos.isValid()) tsos = propagatorOpposite_->propagate(state_start, *my_plane);
+
+  if (tsos.isValid()) return tsos.globalPosition();
+  return GlobalPoint();
+}
+
+GlobalPoint
+SimpleMuonAnalyzer::propagateToR(const GlobalPoint &inner_point,
+                                 const GlobalVector &inner_vec, float R, int charge) const
+{
+  Cylinder::CylinderPointer my_cyl(Cylinder::build(Surface::PositionType(0,0,0), Surface::RotationType(), R));
+
+  FreeTrajectoryState state_start(inner_point, inner_vec, charge, &*magfield_);
+
+  TrajectoryStateOnSurface tsos(propagator_->propagate(state_start, *my_cyl));
+  if (!tsos.isValid()) tsos = propagatorOpposite_->propagate(state_start, *my_cyl);
+
+  if (tsos.isValid()) return tsos.globalPosition();
+  return GlobalPoint();
+}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(SimpleMuonAnalyzer);
