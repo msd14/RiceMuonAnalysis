@@ -13,4 +13,9 @@
 <use name="DataFormats/RecoCandidate"/>
 <use name="DataFormats/MuonReco"/>
 <use name="DataFormats/Math"/>
+<use   name="MagneticField/Engine"/>
+<use   name="MagneticField/Records"/>
+<use   name="TrackingTools/GeomPropagators"/>
+<use   name="TrackingTools/Records"/>
+<use   name="TrackingTools/TrajectoryState"/>
 <flags EDM_PLUGIN="1"/>
