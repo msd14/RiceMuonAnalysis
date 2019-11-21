@@ -21,6 +21,10 @@
 #include "DataFormats/Math/interface/normalizedPhi.h"
 #include "L1Trigger/L1TMuon/interface/MicroGMTConfiguration.h"
 
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
+#include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
+
 #include "RiceMuonAnalysis/SimpleMuonAnalyzer/plugins/MyNtuple.h"
 
 #include "MagneticField/Engine/interface/MagneticField.h"
@@ -51,6 +55,8 @@ static const float AVERAGE_ME0_Z(568.6); // [cm]
 static const float AVERAGE_DT1_R(440); // [cm] for Barrel
 static const float AVERAGE_DT2_R(523);
 
+//using reco::recHitContainer;
+
 using reco::MuonCollection;
 using l1t::RegionalMuonCandBxCollection;
 
@@ -68,6 +74,7 @@ private:
   /// general interface to propagation
   GlobalPoint propagateToR(const GlobalPoint &inner_point, const GlobalVector &inner_vector, float r, int charge) const;
 
+  edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
 
@@ -83,12 +90,14 @@ private:
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
   :
+  cscSegmentToken_(consumes<CSCSegmentCollection>(iConfig.getParameter<edm::InputTag>("cscSegments"))),
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
   verbose_(iConfig.getParameter<bool>("verbose"))
 {
   tree_ = ntuple_.book(tree_, "Events");
 }
+
 
 // ------------ method called for each event  ------------
 void
@@ -105,6 +114,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.init();
 
   using namespace edm;
+
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
 
@@ -113,7 +123,7 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   ntuple_.event = iEvent.id().event();
 
   ntuple_.nRecoMuon = recoMuons.size();
-
+ 
   // basic reco muon analysis
   for(int i = 0; i < nMaxRecoMuons; i++) {
 
@@ -153,11 +163,16 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
     ntuple_.reco_eta_prop[i] = prop_point.eta();
     ntuple_.reco_phi_prop[i] = prop_point.phi();
     ntuple_.reco_charge[i] = recoMuon.charge();
+   
     // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
     ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
+    
+    ntuple_.reco_hasEMTFMatch[i] = 0;
   }
 
   // basic l1 muon analysis
+  
+  int count = 0;
 
   int i = 0;
   for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
@@ -177,13 +192,16 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
       ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
       ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
       ntuple_.emtf_quality[i] = emtfTrack.hwQual();
+      
+      count+=1;
 
       i++;
     }
   }
+  
   ntuple_.nEmtf = i;
   // match reco muons to emtf tracks
-  // Matthew: please add your code here...
+ 
 
   // fill tree
   tree_->Fill();
@@ -208,7 +226,6 @@ SimpleMuonAnalyzer::propagateToZ(const GlobalPoint &inner_point,
   if (tsos.isValid()) return tsos.globalPosition();
   return GlobalPoint();
 }
-
 
 GlobalPoint
 SimpleMuonAnalyzer::propagateToR(const GlobalPoint &inner_point,
