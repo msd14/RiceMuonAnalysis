@@ -380,10 +380,12 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.04 and dR > 0.02: denom_dR_0402+=1
   if dR <= 0.02: denom_dR_0200+=1
 
+  #Both offline muons should match to L1-muons. (dR<0.2)
+  #If so, keep event in numerator.
   if data==1: 
-    if best1>0.3 or best2>0.3 or len(unpEmtf_Eta_Good) < 2: continue
+    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta_Good) < 2: continue
   else: 
-    if best1>0.3 or best2>0.3 or len(emtf_phi) < 2: continue
+    if best1>0.2 or best2>0.2 or len(emtf_phi) < 2: continue
   EMTFmatch_count+=1
 
   #Numerator histogram.
