@@ -1,0 +1,12 @@
+
+cmsrel CMSSW_10_2_3
+cd CMSSW_10_2_3/src/
+cmsenv
+git cms-init
+
+cmsDriver.py RiceMuonAnalysis/Configuration/Pythia8_CP5_HadronizerFilter_13TeV_cfi  --mc --eventcontent RAWSIM,LHE --datatier GEN-SIM,LHE --conditions 102X_upgrade2018_realistic_v9 --beamspot Realistic25ns13TeVEarly2018Collision --step GEN,SIM --nThreads 8 --geometry DB:Extended --era Run2_2018 --filein file:file.lhe --fileout file:step0.root --filetype LHE --no_exec -n 10
+
+cmsDriver.py step1 --filein step0.root --fileout file:B2G-RunIIFall18DRPremix-00003_step1.root --mc --eventcontent PREMIXRAW --datatier GEN-SIM-RAW --conditions 102X_upgrade2018_realistic_v11 --step DIGI,DATAMIX,L1,DIGI2RAW,HLT:@relval2018 --procModifiers premix_stage2 --nThreads 8 --geometry DB:Extended --datamix PreMix --era Run2_2018 --python_filename B2G-RunIIFall18DRPremix-00003_1_cfg.py --no_exec --customise Configuration/DataProcessing/Utils.addMonitoring -n 2626
+
+
+cmsDriver.py step2 --filein file:B2G-RunIIFall18DRPremix-00003_step1.root --fileout file:B2G-RunIIFall18DRPremix-00003.root --mc --eventcontent AODSIM --runUnscheduled --datatier AODSIM --conditions 102X_upgrade2018_realistic_v11 --step RAW2DIGI,L1Reco,RECO --procModifiers premix_stage2 --nThreads 8 --era Run2_2018 --python_filename B2G-RunIIFall18DRPremix-00003_2_cfg.py --no_exec --customise Configuration/DataProcessing/Utils.addMonitoring -n 2626
