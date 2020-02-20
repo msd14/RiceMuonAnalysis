@@ -279,16 +279,16 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   #### Match offline muons to L1 muons
   #######################################
-  best1=0
+  best1=0    #The dR between an offline muon and its closest track.
   best2=0
-  best1_backup=0
+  best1_backup=0  #The dR between an offline muon and its second closest track. (In case both offline muons share the same closest track)
   best2_backup=0
 
   #Match an offline muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
   if data==1:
     j=0
-    b1_index=-1
+    b1_index=-1  #Keep track of which index of the L1-muon you are using to match.
     while j<len(unpEmtf_Phi_glob_Good):
       if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
       if j==1: 
