@@ -13,7 +13,7 @@ print '------> Importing Root File'
 ## Configuration settings
 MAX_EVT  = -1 ## Maximum number of events to process
 PRT_EVT  = 10000 ## Print every Nth event
-printouts = True
+printouts = False
 plot_kinematics = False
 plot_efficiency = True
 
@@ -22,14 +22,14 @@ evt_tree  = TChain('SimpleMuonAnalyzer/Events')
 
 
 ## ================ Read input files ======================
-data = int(input("Run over: (Data:1, Monte Carlo:2):"))
+dataset = int(input("Run over: (Data:1, Monte Carlo:2):"))
 
-if data == 1:
+if dataset == 1:
   dir1 = 'root://cmsxrootd.fnal.gov//store/user/mdecaro/SingleMuon/SingleMuon_Run2017C-17Nov2017-v1_useParent/200103_210545/0000/Ntuples2/'  
   nFiles = int(input("How many input data files? (Min:1, Max: 416):"))
 
   if nFiles>416 or nFiles<1: 
-    print "Please choose a number of files between 1 than 416."
+    print "Choose a number of input files between 1 than 416."
     sys.exit()
 
   i=1
@@ -40,12 +40,12 @@ if data == 1:
     i+=1
   
 
-if data == 2:
+if dataset == 2:
   dir1 = 'root://cmsxrootd.fnal.gov//store/user/mdecaro/step1/step2/L1Ntuples/'
   nFiles = int(input("How many input MC files? (Min:1, Max: 60):"))
 
   if nFiles>60 or nFiles<1: 
-    print "Please choose a number of files between 1 than 60."
+    print "Choose a number of input MC files between 1 than 60."
     sys.exit()
 
   i=1
@@ -55,7 +55,7 @@ if data == 2:
       evt_tree.Add(file_name)
       i+=1
 
-if data!=1 and data!=2:
+if dataset!=1 and dataset!=2:
   print 'Please choose either data:1 or monte carlo:2'
   sys.exit()
 
@@ -144,73 +144,69 @@ for iEvt in range(evt_tree.GetEntries()):
     if (evt_tree.reco_pt[i] < -90 or evt_tree.reco_eta[i] < -90 or evt_tree.reco_phi[i] < -90): continue
     i+=1
 
-  ## ================================================
-  ## ================================================
-  #Define arrays to store muon properties.
-  reco_pT, reco_eta, reco_eta_prop, reco_phi, reco_phi_prop = [],[],[],[],[] #First muon = leading, second muon = subleading
-  reco_pT_good,reco_eta_good,reco_eta_prop_good,reco_phi_good,reco_phi_prop_good = [], [], [], [], []
-  emtf_pT, emtf_eta, emtf_phi = [], [], []
-
   h_nReco.Fill(len(evt_tree.reco_pt))
   h_nEmtf.Fill(len(evt_tree.emtf_pt))
 
-  #For the Monte Carlo, there can be up to eight reco muons per event. 
-  #First pick out muons passing through the endcap.
-  #Then check that the two muons are within dR < 0.5 of eachother. Save their properties.
-  i, flag = 0,0
-  while i<len(evt_tree.reco_eta) and flag==0:
+
+  #######################################
+  #### Save offline muon properties.
+  #######################################
+  #Define arrays to store muon properties.
+  reco_pT, reco_eta, reco_eta_prop, reco_phi, reco_phi_prop = [],[],[],[],[]
+
+  #For the MC, there can be up to eight offline reco muons per event. 
+  #Find a muon pair with dR < 0.5 that pass through an endcap.
+  i = 0
+  index = [-1, -1]
+  while i<len(evt_tree.reco_eta):
     j=0
     while j<len(evt_tree.reco_eta) and i!=j:
       if abs(evt_tree.reco_eta[i]) > 1.2 and abs(evt_tree.reco_eta[i]) < 2.4 and abs(evt_tree.reco_eta[j]) > 1.2 and abs(evt_tree.reco_eta[j]) < 2.4:
 	if h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j]) < 0.5:
-	  reco_pT_good.append(evt_tree.reco_pt[i])
-	  reco_eta_good.append(evt_tree.reco_eta[i])
-	  reco_phi_good.append(evt_tree.reco_phi[i])
-	  reco_eta_prop_good.append(evt_tree.reco_eta_prop[i])
-	  reco_phi_prop_good.append(evt_tree.reco_phi_prop[i])
-
-	  reco_pT_good.append(evt_tree.reco_pt[j])
-	  reco_eta_good.append(evt_tree.reco_eta[j])
-	  reco_phi_good.append(evt_tree.reco_phi[j])
-	  reco_eta_prop_good.append(evt_tree.reco_eta_prop[j])
-	  reco_phi_prop_good.append(evt_tree.reco_phi_prop[j])
-	  flag=1
+	  index = [i, j]
+	  break
       j+=1
     i+=1
 
-  #Ignore events without a good muon pair.
-  #Then order events by leading, subleading pT.
-  if len(reco_pT_good)!=2: continue 
-  if reco_pT_good[0] > reco_pT_good[1]: 
+  #If no good pair, skip the event.
+  if index[0]<0: continue
+
+  #Order offline muons by leading pT.
+  i=index[0]; j=index[1]
+  if evt_tree.reco_pt[i] > evt_tree.reco_pt[j]: 
     i=0
     while i<2:
-      reco_pT.append(reco_pT_good[i])
-      reco_eta.append(reco_eta_good[i])
-      reco_phi.append(reco_phi_good[i])
-      reco_eta_prop.append(reco_eta_prop_good[i])
-      reco_phi_prop.append(reco_phi_prop_good[i])
+      j=index[i]
+      reco_pT.append(evt_tree.reco_pt[j])
+      reco_eta.append(evt_tree.reco_eta[j])
+      reco_phi.append(evt_tree.reco_phi[j])
+      reco_eta_prop.append(evt_tree.reco_eta_prop[j])
+      reco_phi_prop.append(evt_tree.reco_phi_prop[j])
       i+=1
+
   else:
     i=1
     while i>-1:
-      reco_pT.append(reco_pT_good[i])
-      reco_eta.append(reco_eta_good[i])
-      reco_eta_prop.append(reco_eta_prop_good[i])
-      reco_phi_prop.append(reco_phi_prop_good[i])
-      reco_phi.append(reco_phi_good[i])
+
+      j=index[i]
+      reco_pT.append(evt_tree.reco_pt[j])
+      reco_eta.append(evt_tree.reco_eta[j])
+      reco_phi.append(evt_tree.reco_phi[j])
+      reco_eta_prop.append(evt_tree.reco_eta_prop[j])
+      reco_phi_prop.append(evt_tree.reco_phi_prop[j])
       i-=1
 
-  #A pT filter was not applied to the MC, so apply one. Some other simple checks.
-  if reco_pT_good[0] == reco_pT_good[1]: continue
+  #A pT filter wasn't applied to the MC, so apply one.
   if len(reco_pT)!=2: continue
   if reco_pT[0] < 15 or reco_pT[1] < 15: continue 
   ## ================================================
   ## ================================================
 
 
-  #######################################
-  #### Duplicate removal.
-  #######################################
+  #################################################
+  #### Save L1 muon properties. Remove duplicates.
+  #################################################
+  emtf_pT, emtf_eta, emtf_phi = [], [], []
 
   #The monte carlo currently does not have unpacked emtf tracks to remove duplicates.
   #If two regional muon candidates have exactly the same (eta, phi) then only keep one.
@@ -235,7 +231,7 @@ for iEvt in range(evt_tree.GetEntries()):
   ########
 
   #For the SM data, check if a track has a duplicate.
-  if data==1:
+  if dataset==1:
     unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi_fp, unpEmtf_Mode_neighbor = [], [], [], []
     unpEmtf_Phi_glob, unpEmtf_Phi = [], []
     unpEmtf_Pt_Good, unpEmtf_Eta_Good, unpEmtf_Phi_Good, unpEmtf_Phi_glob_Good  = [], [], [], [] 
@@ -287,7 +283,7 @@ for iEvt in range(evt_tree.GetEntries()):
 
   #Match an offline muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
-  if data==1:
+  if dataset==1:
     j=0
     b1_index=-1
     while j<len(unpEmtf_Phi_glob_Good):
@@ -356,7 +352,6 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
   ## ================================================
 
-
   ####################################################
   #### Some useful printouts.
   ####################################################
@@ -367,7 +362,7 @@ for iEvt in range(evt_tree.GetEntries()):
     print 'offline muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
     print 'L1 muon properties (pT, eta, phi):'
     i=0
-    if data==1:
+    if dataset==1:
       while i<len(unpEmtf_Eta_Good):
 	print 'L1 muon', i+1, ':',  unpEmtf_Pt_Good[i], unpEmtf_Eta_Good[i], unpEmtf_Phi_glob_Good[i]
 	i+=1
@@ -383,6 +378,7 @@ for iEvt in range(evt_tree.GetEntries()):
   ####################################################
   #### Apply selections, calculate trigger efficiency.
   ####################################################
+
   none_count+=1   #No selections applied (only filter)
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
   med_count+=1    #Events that pass medium selection.
@@ -398,17 +394,16 @@ for iEvt in range(evt_tree.GetEntries()):
 
   if dR <= 0.30 and dR > 0.20: denom_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: denom_dR_2010+=1
-
   if dR <= 0.10 and dR > 0.08: denom_dR_1008+=1
   if dR <= 0.08 and dR > 0.06: denom_dR_0806+=1
   if dR <= 0.06 and dR > 0.04: denom_dR_0604+=1
   if dR <= 0.04 and dR > 0.02: denom_dR_0402+=1
   if dR <= 0.02: denom_dR_0200+=1
 
-  if data==1: 
-    if best1>0.3 or best2>0.3 or len(unpEmtf_Eta_Good) < 2: continue
+  if dataset==1: 
+    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta_Good) < 2: continue
   else: 
-    if best1>0.3 or best2>0.3 or len(emtf_phi) < 2: continue
+    if best1>0.2 or best2>0.2 or len(emtf_phi) < 2: continue
   EMTFmatch_count+=1
 
   #Numerator histogram.
@@ -418,7 +413,6 @@ for iEvt in range(evt_tree.GetEntries()):
 
   if dR <= 0.30 and dR > 0.20: numer_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: numer_dR_2010+=1
-
   if dR <= 0.10 and dR > 0.08: numer_dR_1008+=1
   if dR <= 0.08 and dR > 0.06: numer_dR_0806+=1
   if dR <= 0.06 and dR > 0.04: numer_dR_0604+=1
@@ -499,57 +493,42 @@ if plot_efficiency == True:
   c57.SetGrid()
   eff = TEfficiency(h_dEta_numer, h_dEta_denom)
   eff.Draw()
-  if data==1: eff.SetTitle('Trigger Efficiency vs #Delta #eta')
-  if data==2: eff.SetTitle('Trigger Efficiency vs #Delta #eta (MC)')
+  if dataset==1: eff.SetTitle('Trigger Efficiency vs #Delta #eta')
+  else: eff.SetTitle('Trigger Efficiency vs #Delta #eta (MC)')
   gPad.Update()
   graph = eff.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  gPad.Update()
-  eff.Write()
-  c57.Update()
-  c57.Modified()
-  c57.Update()
-  if data==1: c57.SaveAs("tests2/eff_dEta.png")
-  if data==2: c57.SaveAs("tests2/eff_dEta_MC.png")
+  if dataset==1: c57.SaveAs("tests2/eff_dEta.png")
+  else: c57.SaveAs("tests2/eff_dEta_MC.png")
   c57.Close()
 
   c58 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c58.SetGrid()
   eff2 = TEfficiency(h_dPhi_numer, h_dPhi_denom)
   eff2.Draw()
-  if data==1: eff2.SetTitle('Trigger Efficiency vs #Delta #phi')
-  if data==2: eff2.SetTitle('Trigger Efficiency vs #Delta #phi (MC)')
+  if dataset==1: eff2.SetTitle('Trigger Efficiency vs #Delta #phi')
+  else: eff2.SetTitle('Trigger Efficiency vs #Delta #phi (MC)')
   gPad.Update()
   graph = eff2.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  gPad.Update()
-  eff2.Write()
-  c58.Update()
-  c58.Modified()
-  c58.Update()
-  if data==1: c58.SaveAs("tests2/eff_dPhi.png")
-  if data==2: c58.SaveAs("tests2/eff_dPhi_MC.png")
+  if dataset==1: c58.SaveAs("tests2/eff_dPhi.png")
+  else: c58.SaveAs("tests2/eff_dPhi_MC.png")
   c58.Close()
 
   c59 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c59.SetGrid()
   eff3 = TEfficiency(h_dR_numer, h_dR_denom)
   eff3.Draw()
-  if data==1: eff3.SetTitle('Trigger Efficiency vs #Delta R')
-  if data==2: eff3.SetTitle('Trigger Efficiency vs #Delta R (MC)')
+  if dataset==1: eff3.SetTitle('Trigger Efficiency vs #Delta R')
+  else: eff3.SetTitle('Trigger Efficiency vs #Delta R (MC)')
   gPad.Update()
   graph = eff3.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  gPad.Update()
-  eff3.Write()
-  c59.Update()
-  c59.Modified()
-  c59.Update()
-  if data==1: c59.SaveAs("tests2/eff_dR.png")
-  if data==2: c59.SaveAs("tests2/eff_dR_MC.png")
+  if dataset==1: c59.SaveAs("tests2/eff_dR.png")
+  else: c59.SaveAs("tests2/eff_dR_MC.png")
   c59.Close()
 
 ################
@@ -562,12 +541,12 @@ if plot_kinematics == True:
   #h_reco_pt.SetMinimum(1)
   #h_reco_pt.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco_pt.SetTitle('All offline reco muon pT')
-  #if data==2: h_reco_pt.SetTitle('All offline reco muon pT (MC)')
+  #if dataset==1: h_reco_pt.SetTitle('All offline reco muon pT')
+  #if dataset==2: h_reco_pt.SetTitle('All offline reco muon pT (MC)')
   #h_reco_pt.GetXaxis().SetTitle('pT (GeV)')
   #h_reco_pt.Write()
-  #if data==1: c1.SaveAs("trees/reco_pT.png")
-  #if data==2: c1.SaveAs("trees/reco_pT_MC.png")
+  #if dataset==1: c1.SaveAs("trees/reco_pT.png")
+  #if dataset==2: c1.SaveAs("trees/reco_pT_MC.png")
   #c1.Close()
 
   #c2 = TCanvas( 'c2', '', 200, 10, 700, 500)
@@ -576,11 +555,11 @@ if plot_kinematics == True:
   #h_reco1_pt.Draw()
   #gStyle.SetOptStat(0)
   #h_reco1_pt.GetXaxis().SetTitle('pT (GeV)')
-  #if data==1: h_reco1_pt.SetTitle('First offline reco muon pT')
-  #if data==2: h_reco1_pt.SetTitle('First offline reco muon pT (MC)')
+  #if dataset==1: h_reco1_pt.SetTitle('First offline reco muon pT')
+  #if dataset==2: h_reco1_pt.SetTitle('First offline reco muon pT (MC)')
   #h_reco1_pt.Write()
-  #if data==1: c2.SaveAs("trees/reco1_pT.png")
-  #if data==2: c2.SaveAs("trees/reco1_pT_MC.png")
+  #if dataset==1: c2.SaveAs("trees/reco1_pT.png")
+  #if dataset==2: c2.SaveAs("trees/reco1_pT_MC.png")
   #c2.Close()
 
   #c3 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -588,12 +567,12 @@ if plot_kinematics == True:
   #h_reco2_pt.SetMinimum(1)
   #h_reco2_pt.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco2_pt.SetTitle('Second offline reco muon pT')
-  #if data==2: h_reco2_pt.SetTitle('Second offline reco muon pT (MC)')
+  #if dataset==1: h_reco2_pt.SetTitle('Second offline reco muon pT')
+  #if dataset==2: h_reco2_pt.SetTitle('Second offline reco muon pT (MC)')
   #h_reco2_pt.GetXaxis().SetTitle('pT (GeV)')
   #h_reco2_pt.Write()
-  #if data==1: c3.SaveAs("trees/reco2_pT.png")
-  #if data==2: c3.SaveAs("trees/reco2_pT_MC.png")
+  #if dataset==1: c3.SaveAs("trees/reco2_pT.png")
+  #if dataset==2: c3.SaveAs("trees/reco2_pT_MC.png")
   #c3.Close()
 
   #c4 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -601,12 +580,12 @@ if plot_kinematics == True:
   #h_reco_eta.SetMinimum(1)
   #h_reco_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco_eta.SetTitle('All offline reco muon #eta')
-  #if data==2: h_reco_eta.SetTitle('All offline reco muon #eta (MC)')
+  #if dataset==1: h_reco_eta.SetTitle('All offline reco muon #eta')
+  #if dataset==2: h_reco_eta.SetTitle('All offline reco muon #eta (MC)')
   #h_reco_eta.GetXaxis().SetTitle('#eta')
   #h_reco_eta.Write()
-  #if data==1: c4.SaveAs("trees/reco_eta.png")
-  #if data==2: c4.SaveAs("trees/reco_eta_MC.png")
+  #if dataset==1: c4.SaveAs("trees/reco_eta.png")
+  #if dataset==2: c4.SaveAs("trees/reco_eta_MC.png")
   #c4.Close()
 
   #c5 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -614,12 +593,12 @@ if plot_kinematics == True:
   #h_reco1_eta.SetMinimum(1)
   #h_reco1_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco1_eta.SetTitle('First offline reco muon #eta')
-  #if data==2: h_reco1_eta.SetTitle('First offline reco muon #eta (MC)')
+  #if dataset==1: h_reco1_eta.SetTitle('First offline reco muon #eta')
+  #if dataset==2: h_reco1_eta.SetTitle('First offline reco muon #eta (MC)')
   #h_reco1_eta.GetXaxis().SetTitle('#eta')
   #h_reco1_eta.Write()
-  #if data==1: c5.SaveAs("trees/reco1_eta.png")
-  #if data==2: c5.SaveAs("trees/reco1_eta_MC.png")
+  #if dataset==1: c5.SaveAs("trees/reco1_eta.png")
+  #if dataset==2: c5.SaveAs("trees/reco1_eta_MC.png")
   #c5.Close()
 
   #c5 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -627,12 +606,12 @@ if plot_kinematics == True:
   #h_reco2_eta.SetMinimum(1)
   #h_reco2_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco2_eta.SetTitle('Second offline reco muon #eta')
-  #if data==2: h_reco2_eta.SetTitle('Second offline reco muon #eta (MC)')
+  #if dataset==1: h_reco2_eta.SetTitle('Second offline reco muon #eta')
+  #if dataset==2: h_reco2_eta.SetTitle('Second offline reco muon #eta (MC)')
   #h_reco2_eta.GetXaxis().SetTitle('#eta')
   #h_reco2_eta.Write()
-  #if data==1: c5.SaveAs("trees/reco2_eta.png")
-  #if data==2: c5.SaveAs("trees/reco2_eta_MC.png")
+  #if dataset==1: c5.SaveAs("trees/reco2_eta.png")
+  #if dataset==2: c5.SaveAs("trees/reco2_eta_MC.png")
   #c5.Close()
 
   c6 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -640,12 +619,12 @@ if plot_kinematics == True:
   h_reco_phi.SetMinimum(1)
   h_reco_phi.Draw()
   gStyle.SetOptStat(0)
-  if data==1: h_reco_phi.SetTitle('All offline reco muon #phi')
-  if data==2: h_reco_phi.SetTitle('All offline reco muon #phi (MC)')
+  if dataset==1: h_reco_phi.SetTitle('All offline reco muon #phi')
+  if dataset==2: h_reco_phi.SetTitle('All offline reco muon #phi (MC)')
   h_reco_phi.GetXaxis().SetTitle('#phi')
   h_reco_phi.Write()
-  if data==1: c6.SaveAs("trees/reco_phi.png")
-  if data==2: c6.SaveAs("trees/reco_phi_MC.png")
+  if dataset==1: c6.SaveAs("trees/reco_phi.png")
+  if dataset==2: c6.SaveAs("trees/reco_phi_MC.png")
   c6.Close()
 
   #c7 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -653,12 +632,12 @@ if plot_kinematics == True:
   #h_reco1_phi.SetMinimum(1)
   #h_reco1_phi.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco1_phi.SetTitle('First offline reco muon #phi')
-  #if data==2: h_reco1_phi.SetTitle('First offline reco muon #phi (MC)')
+  #if dataset==1: h_reco1_phi.SetTitle('First offline reco muon #phi')
+  #if dataset==2: h_reco1_phi.SetTitle('First offline reco muon #phi (MC)')
   #h_reco1_phi.GetXaxis().SetTitle('#phi')
   #h_reco1_phi.Write()
-  #if data==1: c7.SaveAs("trees/reco1_phi.png")
-  #if data==2: c7.SaveAs("trees/reco1_phi_MC.png")
+  #if dataset==1: c7.SaveAs("trees/reco1_phi.png")
+  #if dataset==2: c7.SaveAs("trees/reco1_phi_MC.png")
   #c7.Close()
 
   #c8 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -666,12 +645,12 @@ if plot_kinematics == True:
   #h_reco2_phi.SetMinimum(1)
   #h_reco2_phi.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_reco2_phi.SetTitle('Second offline reco muon #phi')
-  #if data==2: h_reco2_phi.SetTitle('Second offline reco muon #phi (MC)')
+  #if dataset==1: h_reco2_phi.SetTitle('Second offline reco muon #phi')
+  #if dataset==2: h_reco2_phi.SetTitle('Second offline reco muon #phi (MC)')
   #h_reco2_phi.GetXaxis().SetTitle('#phi')
   #h_reco2_phi.Write()
-  #if data==1: c8.SaveAs("trees/reco2_phi.png")
-  #if data==2: c8.SaveAs("trees/reco2_phi_MC.png")
+  #if dataset==1: c8.SaveAs("trees/reco2_phi.png")
+  #if dataset==2: c8.SaveAs("trees/reco2_phi_MC.png")
   #c8.Close()
 
   #c12 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -680,11 +659,11 @@ if plot_kinematics == True:
   #h_emtf_pt.Draw()
   #gStyle.SetOptStat(0)
   #h_emtf_pt.SetTitle('All EMTF Tracks pT')
-  #if data==1: h_emtf_pt.GetXaxis().SetTitle('pT (GeV)')
-  #if data==2: h_emtf_pt.GetXaxis().SetTitle('pT (GeV) (MC)')
+  #if dataset==1: h_emtf_pt.GetXaxis().SetTitle('pT (GeV)')
+  #if dataset==2: h_emtf_pt.GetXaxis().SetTitle('pT (GeV) (MC)')
   #h_emtf_pt.Write()
-  #if data==1: c12.SaveAs("trees/emtf_pT.png")
-  #if data==2: c12.SaveAs("trees/emtf_pT_MC.png")
+  #if dataset==1: c12.SaveAs("trees/emtf_pT.png")
+  #if dataset==2: c12.SaveAs("trees/emtf_pT_MC.png")
   #c12.Close()
 
   #c13 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -692,12 +671,12 @@ if plot_kinematics == True:
   #h_emtf1_pt.SetMinimum(1)
   #h_emtf1_pt.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf1_pt.SetTitle('First Emtf track pT')
-  #if data==2: h_emtf1_pt.SetTitle('First Emtf track pT (MC)')
+  #if dataset==1: h_emtf1_pt.SetTitle('First Emtf track pT')
+  #if dataset==2: h_emtf1_pt.SetTitle('First Emtf track pT (MC)')
   #h_emtf1_pt.GetXaxis().SetTitle('pT (GeV)')
   #h_emtf1_pt.Write()
-  #if data==1: c13.SaveAs("trees/emtf1_pT.png")
-  #if data==2: c13.SaveAs("trees/emtf1_pT_MC.png")
+  #if dataset==1: c13.SaveAs("trees/emtf1_pT.png")
+  #if dataset==2: c13.SaveAs("trees/emtf1_pT_MC.png")
   #c13.Close()
 
   #c14 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -705,12 +684,12 @@ if plot_kinematics == True:
   #h_emtf2_pt.SetMinimum(1)
   #h_emtf2_pt.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf2_pt.SetTitle('Second Emtf track pT')
-  #if data==2: h_emtf2_pt.SetTitle('Second Emtf track pT (MC)')
+  #if dataset==1: h_emtf2_pt.SetTitle('Second Emtf track pT')
+  #if dataset==2: h_emtf2_pt.SetTitle('Second Emtf track pT (MC)')
   #h_emtf2_pt.GetXaxis().SetTitle('pT (GeV)')
   #h_emtf2_pt.Write()
-  #if data==1: c14.SaveAs("trees/emtf2_pT.png")
-  #if data==2: c14.SaveAs("trees/emtf2_pT_MC.png")
+  #if dataset==1: c14.SaveAs("trees/emtf2_pT.png")
+  #if dataset==2: c14.SaveAs("trees/emtf2_pT_MC.png")
   #c14.Close()
 
   #c16 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -718,12 +697,12 @@ if plot_kinematics == True:
   #h_emtf_eta.SetMinimum(1)
   #h_emtf_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf_eta.SetTitle('All EMTF tracks #eta')
-  #if data==2: h_emtf_eta.SetTitle('All EMTF tracks #eta (MC)')
+  #if dataset==1: h_emtf_eta.SetTitle('All EMTF tracks #eta')
+  #if dataset==2: h_emtf_eta.SetTitle('All EMTF tracks #eta (MC)')
   #h_emtf_eta.GetXaxis().SetTitle('#eta')
   #h_emtf_eta.Write()
-  #if data==1: c16.SaveAs("trees/emtf_eta.png")
-  #if data==2: c16.SaveAs("trees/emtf_eta_MC.png")
+  #if dataset==1: c16.SaveAs("trees/emtf_eta.png")
+  #if dataset==2: c16.SaveAs("trees/emtf_eta_MC.png")
   #c16.Close()
 
   #c17 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -731,12 +710,12 @@ if plot_kinematics == True:
   #h_emtf1_eta.SetMinimum(1)
   #h_emtf1_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf1_eta.SetTitle('First Emtf track #eta')
-  #if data==2: h_emtf1_eta.SetTitle('First Emtf track #eta (MC)')
+  #if dataset==1: h_emtf1_eta.SetTitle('First Emtf track #eta')
+  #if dataset==2: h_emtf1_eta.SetTitle('First Emtf track #eta (MC)')
   #h_emtf1_eta.GetXaxis().SetTitle('#eta')
   #h_emtf1_eta.Write()
-  #if data==1: c17.SaveAs("trees/emtf1_eta.png")
-  #if data==2: c17.SaveAs("trees/emtf1_eta_MC.png")
+  #if dataset==1: c17.SaveAs("trees/emtf1_eta.png")
+  #if dataset==2: c17.SaveAs("trees/emtf1_eta_MC.png")
   #c17.Close()
 
   #c18 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -744,12 +723,12 @@ if plot_kinematics == True:
   #h_emtf2_eta.SetMinimum(1)
   #h_emtf2_eta.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf2_eta.SetTitle('Second Emtf track #eta')
-  #if data==2: h_emtf2_eta.SetTitle('Second Emtf track #eta (MC)')
+  #if dataset==1: h_emtf2_eta.SetTitle('Second Emtf track #eta')
+  #if dataset==2: h_emtf2_eta.SetTitle('Second Emtf track #eta (MC)')
   #h_emtf2_eta.GetXaxis().SetTitle('#eta')
   #h_emtf2_eta.Write()
-  #if data==1: c18.SaveAs("trees/emtf2_eta.png")
-  #if data==2: c18.SaveAs("trees/emtf2_eta_MC.png")
+  #if dataset==1: c18.SaveAs("trees/emtf2_eta.png")
+  #if dataset==2: c18.SaveAs("trees/emtf2_eta_MC.png")
   #c18.Close()
 
   #c20 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -757,12 +736,12 @@ if plot_kinematics == True:
   #h_emtf_phi.SetMinimum(1)
   #h_emtf_phi.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf_phi.SetTitle('All EMTF tracks #phi')
-  #if data==2: h_emtf_phi.SetTitle('All EMTF tracks #phi (MC)')
+  #if dataset==1: h_emtf_phi.SetTitle('All EMTF tracks #phi')
+  #if dataset==2: h_emtf_phi.SetTitle('All EMTF tracks #phi (MC)')
   #h_emtf_phi.GetXaxis().SetTitle('#phi')
   #h_emtf_phi.Write()
-  #if data==1: c20.SaveAs("trees/emtf_phi.png")
-  #if data==2: c20.SaveAs("trees/emtf_phi_MC.png")
+  #if dataset==1: c20.SaveAs("trees/emtf_phi.png")
+  #if dataset==2: c20.SaveAs("trees/emtf_phi_MC.png")
   #c20.Close()
 
   #c21 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -770,12 +749,12 @@ if plot_kinematics == True:
   #h_emtf1_phi.SetMinimum(1)
   #h_emtf1_phi.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf1_phi.SetTitle('First emtf track #phi')
-  #if data==2: h_emtf1_phi.SetTitle('First emtf track #phi (MC)')
+  #if dataset==1: h_emtf1_phi.SetTitle('First emtf track #phi')
+  #if dataset==2: h_emtf1_phi.SetTitle('First emtf track #phi (MC)')
   #h_emtf1_phi.GetXaxis().SetTitle('#phi')
   #h_emtf1_phi.Write()
-  #if data==1: c21.SaveAs("trees/emtf1_phi.png")
-  #if data==2: c21.SaveAs("trees/emtf1_phi_MC.png")
+  #if dataset==1: c21.SaveAs("trees/emtf1_phi.png")
+  #if dataset==2: c21.SaveAs("trees/emtf1_phi_MC.png")
   #c21.Close()
 
   #c22 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -783,12 +762,12 @@ if plot_kinematics == True:
   #h_emtf2_phi.SetMinimum(1)
   #h_emtf2_phi.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_emtf2_phi.SetTitle('Second emtf track #phi')
-  #if data==2: h_emtf2_phi.SetTitle('Second emtf track #phi (MC)')
+  #if dataset==1: h_emtf2_phi.SetTitle('Second emtf track #phi')
+  #if dataset==2: h_emtf2_phi.SetTitle('Second emtf track #phi (MC)')
   #h_emtf2_phi.GetXaxis().SetTitle('#phi')
   #h_emtf2_phi.Write()
-  #if data==1: c22.SaveAs("trees/emtf2_phi.png")
-  #if data==2: c22.SaveAs("trees/emtf2_phi_MC.png")
+  #if dataset==1: c22.SaveAs("trees/emtf2_phi.png")
+  #if dataset==2: c22.SaveAs("trees/emtf2_phi_MC.png")
   #c22.Close()
 
   #c33 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -796,12 +775,12 @@ if plot_kinematics == True:
   #h_nReco.SetMinimum(1)
   #h_nReco.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event')
-  #if data==2: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event (MC)')
+  #if dataset==1: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event')
+  #if dataset==2: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event (MC)')
   #h_nReco.GetXaxis().SetTitle('Offline Muons')
   #h_nReco.Write()
-  #if data==1: c33.SaveAs("trees/nReco.png")
-  #if data==2: c33.SaveAs("trees/nReco_MC.png")
+  #if dataset==1: c33.SaveAs("trees/nReco.png")
+  #if dataset==2: c33.SaveAs("trees/nReco_MC.png")
   #c33.Close()
 
   #c34 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -809,12 +788,12 @@ if plot_kinematics == True:
   #h_nEmtf.SetMinimum(1)
   #h_nEmtf.Draw()
   #gStyle.SetOptStat(0)
-  #if data==1: h_nEmtf.SetTitle('Number of EMTF tracks per event')
-  #if data==2: h_nEmtf.SetTitle('Number of EMTF tracks per event (MC)')
+  #if dataset==1: h_nEmtf.SetTitle('Number of EMTF tracks per event')
+  #if dataset==2: h_nEmtf.SetTitle('Number of EMTF tracks per event (MC)')
   #h_nEmtf.GetXaxis().SetTitle('EMTF Tracks')
   #h_nEmtf.Write()
-  #if data==1: c34.SaveAs("trees/nEmtf.png")
-  #if data==2: c34.SaveAs("trees/nEmtf_MC.png")
+  #if dataset==1: c34.SaveAs("trees/nEmtf.png")
+  #if dataset==2: c34.SaveAs("trees/nEmtf_MC.png")
   #c34.Close()
 
   c35 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -822,12 +801,12 @@ if plot_kinematics == True:
   h_dEta.SetMinimum(1)
   h_dEta.Draw()
   gStyle.SetOptStat(0)
-  if data==1: h_dEta.SetTitle('Difference between reco muon #eta')
-  if data==2: h_dEta.SetTitle('Difference between reco muon #eta (MC)')
+  if dataset==1: h_dEta.SetTitle('Difference between reco muon #eta')
+  if dataset==2: h_dEta.SetTitle('Difference between reco muon #eta (MC)')
   h_dEta.GetXaxis().SetTitle('#Delta #eta')
   h_dEta.Write()
-  if data==1: c35.SaveAs("trees/dEta.png")
-  if data==2: c35.SaveAs("trees/dEta_MC.png")
+  if dataset==1: c35.SaveAs("trees/dEta.png")
+  if dataset==2: c35.SaveAs("trees/dEta_MC.png")
   c35.Close()
 
   c36 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
@@ -835,10 +814,10 @@ if plot_kinematics == True:
   h_dPhi.SetMinimum(1)
   h_dPhi.Draw()
   gStyle.SetOptStat(0)
-  if data==1: h_dPhi.SetTitle('Difference between reco muon #phi')
-  if data==2: h_dPhi.SetTitle('Difference between reco muon #phi (MC)')
+  if dataset==1: h_dPhi.SetTitle('Difference between reco muon #phi')
+  if dataset==2: h_dPhi.SetTitle('Difference between reco muon #phi (MC)')
   h_dPhi.GetXaxis().SetTitle('#Delta #phi')
   h_dPhi.Write()
-  if data==1: c36.SaveAs("trees/dPhi.png")
-  if data==2: c36.SaveAs("trees/dPhi_MC.png")
+  if dataset==1: c36.SaveAs("trees/dPhi.png")
+  if dataset==2: c36.SaveAs("trees/dPhi_MC.png")
   c36.Close()
