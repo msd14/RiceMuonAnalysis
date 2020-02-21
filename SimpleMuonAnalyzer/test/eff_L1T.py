@@ -356,8 +356,12 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
   ## ================================================
 
+
+  ####################################################
+  #### Some useful printouts.
+  ####################################################
+
   if printouts == True:
-    ####Useful printouts####
     print 'offline muon properties (pT, eta, phi (propagated)):'
     print 'offline muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
     print 'offline muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
@@ -372,6 +376,9 @@ for iEvt in range(evt_tree.GetEntries()):
 	print 'L1 muon', i+1, ':',  emtf_pT[i], emtf_eta[i], emtf_phi[i]
 	i+=1
     print '---------------'
+    ## ================================================
+    ## ================================================
+
 
   ####################################################
   #### Apply selections, calculate trigger efficiency.
