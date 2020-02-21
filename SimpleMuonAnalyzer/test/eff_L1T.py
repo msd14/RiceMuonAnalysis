@@ -238,11 +238,12 @@ for iEvt in range(evt_tree.GetEntries()):
   #For the SM data use unpacked tracks as L1 muons.
   if dataset==1:
     if len(evt_tree.unpEmtf_Pt)>0:
-      unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
-      unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
-      unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
-      unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
-      unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
+      if evt_tree.unpEmtf_Mode[0]>12:
+	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
+	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
+	unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
+	unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
+	unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
 
       i=0
       while i<len(evt_tree.unpEmtf_Eta):
@@ -255,7 +256,7 @@ for iEvt in range(evt_tree.GetEntries()):
 	  j+=1
 
 	#If the track isn't a duplicate, save its properties.
-	if flag==len(unpEmtf_Eta):
+	if flag==len(unpEmtf_Eta) and evt_tree.unpEmtf_Mode[i]>12:
 	    unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
 	    unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
 	    unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[i])
