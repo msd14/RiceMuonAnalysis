@@ -13,6 +13,9 @@ print '------> Importing Root File'
 ## Configuration settings
 MAX_EVT  = -1 ## Maximum number of events to process
 PRT_EVT  = 10000 ## Print every Nth event
+printouts = True
+plot_kinematics = False
+plot_efficiency = True
 
 ## ================ Event branches ======================
 evt_tree  = TChain('SimpleMuonAnalyzer/Events')
@@ -61,8 +64,6 @@ print 'Some files will give an error message if they failed processing.'
 
 ## ================ Histograms ======================
 ##Plot options:
-plot_kinematics = False
-plot_efficiency = True
 
 eta_bins = [256, -2.8, 2.8]
 phi_bins = [256, -np.pi, np.pi]
@@ -279,16 +280,16 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   #### Match offline muons to L1 muons
   #######################################
-  best1=0    #The dR between an offline muon and its closest track.
+  best1=0
   best2=0
-  best1_backup=0  #The dR between an offline muon and its second closest track. (In case both offline muons share the same closest track)
+  best1_backup=0
   best2_backup=0
 
   #Match an offline muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
   if data==1:
     j=0
-    b1_index=-1  #Keep track of which index of the L1-muon you are using to match.
+    b1_index=-1
     while j<len(unpEmtf_Phi_glob_Good):
       if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
       if j==1: 
@@ -355,12 +356,29 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
   ## ================================================
 
+  if printouts == True:
+    ####Useful printouts####
+    print 'offline muon properties (pT, eta, phi (propagated)):'
+    print 'offline muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
+    print 'offline muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
+    print 'L1 muon properties (pT, eta, phi):'
+    i=0
+    if data==1:
+      while i<len(unpEmtf_Eta_Good):
+	print 'L1 muon', i+1, ':',  unpEmtf_Pt_Good[i], unpEmtf_Eta_Good[i], unpEmtf_Phi_glob_Good[i]
+	i+=1
+    else:
+      while i<len(emtf_eta):
+	print 'L1 muon', i+1, ':',  emtf_pT[i], emtf_eta[i], emtf_phi[i]
+	i+=1
+    print '---------------'
+
   ####################################################
   #### Apply selections, calculate trigger efficiency.
   ####################################################
-  none_count+=1
+  none_count+=1   #No selections applied (only filter)
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
-  med_count+=1
+  med_count+=1    #Events that pass medium selection.
 
   dEta = reco_eta_prop[0] - reco_eta_prop[1]
   dPhi = reco_phi_prop[0] - reco_phi_prop[1]
@@ -380,12 +398,10 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.04 and dR > 0.02: denom_dR_0402+=1
   if dR <= 0.02: denom_dR_0200+=1
 
-  #Both offline muons should match to L1-muons. (dR<0.2)
-  #If so, keep event in numerator.
   if data==1: 
-    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta_Good) < 2: continue
+    if best1>0.3 or best2>0.3 or len(unpEmtf_Eta_Good) < 2: continue
   else: 
-    if best1>0.2 or best2>0.2 or len(emtf_phi) < 2: continue
+    if best1>0.3 or best2>0.3 or len(emtf_phi) < 2: continue
   EMTFmatch_count+=1
 
   #Numerator histogram.
