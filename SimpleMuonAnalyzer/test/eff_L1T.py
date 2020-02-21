@@ -151,7 +151,6 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   #### Save offline muon properties.
   #######################################
-  #Define arrays to store muon properties.
   reco_pT, reco_eta, reco_eta_prop, reco_phi, reco_phi_prop = [],[],[],[],[]
 
   #For the MC, there can be up to eight offline reco muons per event. 
@@ -206,69 +205,63 @@ for iEvt in range(evt_tree.GetEntries()):
   #################################################
   #### Save L1 muon properties. Remove duplicates.
   #################################################
-  emtf_pT, emtf_eta, emtf_phi = [], [], []
+  emtf_pT, emtf_eta, emtf_phi = [], [], []   #L1 (regional muon candidate) properties.
 
-  #The monte carlo currently does not have unpacked emtf tracks to remove duplicates.
+  #MC currently doesn't have unpacked Emtf tracks to remove duplicates.
   #If two regional muon candidates have exactly the same (eta, phi) then only keep one.
   if len(evt_tree.emtf_phi)>0:
     emtf_pT.append(evt_tree.emtf_pt[0])
     emtf_eta.append(evt_tree.emtf_eta[0])
     emtf_phi.append(evt_tree.emtf_phi[0])
 
-  if len(evt_tree.emtf_phi)>1:
-    if emtf_phi[0]!= evt_tree.emtf_phi[1] or emtf_eta[0]!= evt_tree.emtf_eta[1]:
-      emtf_pT.append(evt_tree.emtf_pt[1])
-      emtf_eta.append(evt_tree.emtf_eta[1])
-      emtf_phi.append(evt_tree.emtf_phi[1])
+    i=0
+    while i<len(evt_tree.emtf_phi):
+      j=0; flag=0
 
-  if len(emtf_phi)==2 and len(evt_tree.emtf_phi)>2:
-    if emtf_phi[0]!= evt_tree.emtf_phi[2] or emtf_eta[0]!= evt_tree.emtf_eta[2]:
-      if emtf_phi[1]!= evt_tree.emtf_phi[2] or emtf_eta[1]!= evt_tree.emtf_eta[2]:
-	emtf_pT.append(evt_tree.emtf_pt[2])
-	emtf_eta.append(evt_tree.emtf_eta[2])
-	emtf_phi.append(evt_tree.emtf_phi[2])
-
-  ########
-
-  #For the SM data, check if a track has a duplicate.
-  if dataset==1:
-    unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi_fp, unpEmtf_Mode_neighbor = [], [], [], []
-    unpEmtf_Phi_glob, unpEmtf_Phi = [], []
-    unpEmtf_Pt_Good, unpEmtf_Eta_Good, unpEmtf_Phi_Good, unpEmtf_Phi_glob_Good  = [], [], [], [] 
-
-    #
-    for i in range(len(evt_tree.unpEmtf_Pt)):
-      if ((evt_tree.unpEmtf_Pt[i] > -90) and (evt_tree.unpEmtf_Eta[i] > -90) and (evt_tree.unpEmtf_Phi_fp[i] > -90)):
-	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
-	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
-	unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
-	unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[i])
-	unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i])
-
-
-    #Apply duplicate removal. If tracks have the same global phi but their fp phi differ
-    # by 3600, only keep one of the tracks.
-    if len(unpEmtf_Pt)!=0:
-      unpEmtf_Pt_Good.append(unpEmtf_Pt[0])
-      unpEmtf_Eta_Good.append(unpEmtf_Eta[0])
-      unpEmtf_Phi_Good.append(unpEmtf_Phi[0])
-      unpEmtf_Phi_glob_Good.append(unpEmtf_Phi_glob[0]*np.pi/180.)
-
-    i=1
-    while i<len(unpEmtf_Phi):
-      j=0
-      check=0
-      while j<len(unpEmtf_Phi_Good):
-	if abs(unpEmtf_Phi_fp[i] - unpEmtf_Phi_fp[j]) == 3600: check+=1
-	if abs(unpEmtf_Phi_glob[i] - unpEmtf_Phi_glob[j]) == 0: check+=1
+      #Compare the (eta,phi) of current track to the ones already saved.
+      while j<len(emtf_phi):
+	if emtf_eta[j]!= evt_tree.emtf_eta[i] or emtf_phi[j]!= evt_tree.emtf_phi[i]:
+	  flag+=1
 	j+=1
-      
-      if check==0: 
-	unpEmtf_Pt_Good.append(unpEmtf_Pt[i])
-	unpEmtf_Eta_Good.append(unpEmtf_Eta[i])
-	unpEmtf_Phi_Good.append(unpEmtf_Phi[i])
-	unpEmtf_Phi_glob_Good.append(unpEmtf_Phi_glob[i]*np.pi/180.)
+
+      #If the track isn't a duplicate, save its properties.
+      if flag==len(emtf_phi):
+	  emtf_pT.append(evt_tree.emtf_pt[i])
+	  emtf_eta.append(evt_tree.emtf_eta[i])
+	  emtf_phi.append(evt_tree.emtf_phi[i])
       i+=1
+
+  ## ================================================
+  ## ================================================
+  unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi, unpEmtf_Phi_fp, unpEmtf_Phi_glob = [],[],[],[],[] #L1 (Unpacked Emtf track) properties.
+
+  #For the SM data use unpacked tracks as L1 muons.
+  if dataset==1:
+    if len(evt_tree.unpEmtf_Pt)>0:
+      unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
+      unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
+      unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
+      unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
+      unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
+
+      i=0
+      while i<len(evt_tree.unpEmtf_Eta):
+	j=0; flag=0
+
+	#If two tracks differ in integer phi by exactly 3600 (duplicate), only keep one.
+	while j<len(unpEmtf_Eta) and i!=j:
+	  if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) != 3600 and abs(unpEmtf_Phi_glob[j] - evt_tree.unpEmtf_Phi_glob[i]) != 0:
+	    flag+=1
+	  j+=1
+
+	#If the track isn't a duplicate, save its properties.
+	if flag==len(unpEmtf_Eta):
+	    unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
+	    unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
+	    unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[i])
+	    unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
+	    unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i]*np.pi/180.)
+	i+=1
   ## ================================================
   ## ================================================
   
@@ -286,30 +279,30 @@ for iEvt in range(evt_tree.GetEntries()):
   if dataset==1:
     j=0
     b1_index=-1
-    while j<len(unpEmtf_Phi_glob_Good):
-      if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+    while j<len(unpEmtf_Phi_glob):
+      if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
       if j==1: 
-	if h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j]) < best1:
+	if h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j]) < best1:
 	  best1_backup = best1
-	  best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+	  best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
 	  b1_index=1
 	else:
 	  b1_index=0
-	  best1_backup = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+	  best1_backup = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
       j+=1
 
     j=0
     b2_index=-1
-    while j<len(unpEmtf_Phi_glob_Good):
-      if j==0: best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+    while j<len(unpEmtf_Phi_glob):
+      if j==0: best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
       if j==1: 
-	if h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j]) < best2:
+	if h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j]) < best2:
 	  best2_backup = best2
-	  best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+	  best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
 	  b2_index=1
 	else:
 	  b2_index=0
-	  best2_backup = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta_Good[j], unpEmtf_Phi_glob_Good[j])
+	  best2_backup = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
 
       j+=1
 
@@ -352,9 +345,9 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
   ## ================================================
 
-  ####################################################
-  #### Some useful printouts.
-  ####################################################
+  #####################################################
+  ##### Some useful printouts.
+  #####################################################
 
   if printouts == True:
     print 'offline muon properties (pT, eta, phi (propagated)):'
@@ -363,8 +356,8 @@ for iEvt in range(evt_tree.GetEntries()):
     print 'L1 muon properties (pT, eta, phi):'
     i=0
     if dataset==1:
-      while i<len(unpEmtf_Eta_Good):
-	print 'L1 muon', i+1, ':',  unpEmtf_Pt_Good[i], unpEmtf_Eta_Good[i], unpEmtf_Phi_glob_Good[i]
+      while i<len(unpEmtf_Eta):
+	print 'L1 muon', i+1, ':',  unpEmtf_Pt[i], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]
 	i+=1
     else:
       while i<len(emtf_eta):
@@ -375,9 +368,9 @@ for iEvt in range(evt_tree.GetEntries()):
     ## ================================================
 
 
-  ####################################################
-  #### Apply selections, calculate trigger efficiency.
-  ####################################################
+  #####################################################
+  ##### Apply selections, calculate trigger efficiency.
+  #####################################################
 
   none_count+=1   #No selections applied (only filter)
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
@@ -401,7 +394,7 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.02: denom_dR_0200+=1
 
   if dataset==1: 
-    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta_Good) < 2: continue
+    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta) < 2: continue
   else: 
     if best1>0.2 or best2>0.2 or len(emtf_phi) < 2: continue
   EMTFmatch_count+=1
