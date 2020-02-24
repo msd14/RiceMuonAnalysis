@@ -274,6 +274,8 @@ for iEvt in range(evt_tree.GetEntries()):
       temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
       i+=1
 
+    #Make sure that you don't match both reco muons to the same L1 muon (check the index of smallest dR)
+    #Store the reco-L1 separation distances into variables 'best1, best2'. Use for a later selection.
     if len(unpEmtf_Eta)>1:
       dR1 = set(temp1) ; dR2 = set(temp2)
       if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
@@ -281,6 +283,7 @@ for iEvt in range(evt_tree.GetEntries()):
       if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0] 
 
 
+  #The MC doesn't have unpacked tracks, so use regional muon cands instead for L1 muons.
   if dataset==2:
     i=0
     while i<len(emtf_eta):
