@@ -139,12 +139,13 @@ for iEvt in range(evt_tree.GetEntries()):
 
   h_nReco.Fill(len(evt_tree.reco_pt))
   h_nEmtf.Fill(len(evt_tree.emtf_pt))
-
+  ## ================================================
+  ## ================================================
 
   #######################################
   #### Save RECO muon properties.
   #######################################
-  reco_pT, reco_eta, reco_eta_prop, reco_phi, reco_phi_prop = [],[],[],[],[]
+  reco_pT, reco_eta, reco_phi, reco_eta_prop, reco_phi_prop = [],[],[],[],[]
 
   #For the MC, there can be up to eight offline reco muons per event. 
   #Find a muon pair with dR < 0.5 that pass through an endcap.
@@ -192,7 +193,6 @@ for iEvt in range(evt_tree.GetEntries()):
   if reco_pT[0] < 15 or reco_pT[1] < 15: continue 
   ## ================================================
   ## ================================================
-
 
   #################################################
   #### Save L1 muon properties. Remove duplicates.
@@ -259,7 +259,6 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
   ## ================================================
   
-
   #######################################
   #### Match reco muons to L1 muons
   #######################################
@@ -267,35 +266,37 @@ for iEvt in range(evt_tree.GetEntries()):
 
   #Match a reco muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
-  if dataset==1:
+  if dataset==1 and len(unpEmtf_Eta)>1:
     i=0
     while i<len(unpEmtf_Eta):
       temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
       temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
       i+=1
 
+    if temp1[0]==temp1[1]: 
+      print 'Skipped event.'
+      continue #Very rarely, the temp elements will be equal and the code will crash. Skip these events.
+
     #Make sure that you don't match both reco muons to the same L1 muon (check the index of smallest dR)
     #Store the reco-L1 separation distances into variables 'best1, best2'. Use for a later selection.
-    if len(unpEmtf_Eta)>1:
-      dR1 = set(temp1) ; dR2 = set(temp2)
-      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
-      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2): best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
-      if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0] 
+    dR1 = set(temp1) ; dR2 = set(temp2)
+    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2)[0]: best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
+    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2)[0]: best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
+    if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0] 
 
 
   #The MC doesn't have unpacked tracks, so use regional muon cands instead for L1 muons.
-  if dataset==2:
+  if dataset==2 and len(emtf_eta)>1:
     i=0
     while i<len(emtf_eta):
       temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[i], emtf_phi[i]))
       temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[i], emtf_phi[i]))
       i+=1
 
-    if len(emtf_eta)>1:
-      dR1 = set(temp1) ; dR2 = set(temp2)
-      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
-      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2): best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
-      if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0]
+    dR1 = set(temp1) ; dR2 = set(temp2)
+    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2)[0]: best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
+    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2)[0]: best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
+    if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0]
 
   ## ================================================
   ## ================================================
@@ -321,7 +322,6 @@ for iEvt in range(evt_tree.GetEntries()):
     print '---------------'
     ## ================================================
     ## ================================================
-
 
   #####################################################
   ##### Apply selections, calculate trigger efficiency.
