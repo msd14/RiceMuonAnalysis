@@ -112,21 +112,14 @@ med_count        = 0
 pT_count         = 0
 EMTFmatch_count  = 0
 
-#Some variables to compute average efficiency at the end.
-denom_dR_3020    = 0.
-denom_dR_2010    = 0.
-denom_dR_1008    = 0.
-denom_dR_0806    = 0.
-denom_dR_0604    = 0.
-denom_dR_0402    = 0.
-denom_dR_0200    = 0.
-numer_dR_3020    = 0.
-numer_dR_2010    = 0.
-numer_dR_1008    = 0.
-numer_dR_0806    = 0.
-numer_dR_0604    = 0.
-numer_dR_0402    = 0.
-numer_dR_0200    = 0.
+#Some variables to compute an average efficiency at the end.
+denom_dR_3020 = 0. ; numer_dR_3020 = 0.
+denom_dR_2010 = 0. ; numer_dR_2010 = 0.
+denom_dR_1008 = 0. ; numer_dR_1008 = 0.
+denom_dR_0806 = 0. ; numer_dR_0806 = 0.
+denom_dR_0604 = 0. ; numer_dR_0604 = 0.
+denom_dR_0402 = 0. ; numer_dR_0402 = 0.
+denom_dR_0200 = 0. ; numer_dR_0200 = 0.
 
 ## ================================================
 # Loop over over events in TFile
@@ -149,13 +142,13 @@ for iEvt in range(evt_tree.GetEntries()):
 
 
   #######################################
-  #### Save offline muon properties.
+  #### Save RECO muon properties.
   #######################################
   reco_pT, reco_eta, reco_eta_prop, reco_phi, reco_phi_prop = [],[],[],[],[]
 
   #For the MC, there can be up to eight offline reco muons per event. 
   #Find a muon pair with dR < 0.5 that pass through an endcap.
-  i = 0
+  i=0
   index = [-1, -1]
   while i<len(evt_tree.reco_eta):
     j=0
@@ -170,7 +163,7 @@ for iEvt in range(evt_tree.GetEntries()):
   #If no good pair, skip the event.
   if index[0]<0: continue
 
-  #Order offline muons by leading pT.
+  #Order reco muons by leading pT.
   i=index[0]; j=index[1]
   if evt_tree.reco_pt[i] > evt_tree.reco_pt[j]: 
     i=0
@@ -186,7 +179,6 @@ for iEvt in range(evt_tree.GetEntries()):
   else:
     i=1
     while i>-1:
-
       j=index[i]
       reco_pT.append(evt_tree.reco_pt[j])
       reco_eta.append(evt_tree.reco_eta[j])
@@ -210,9 +202,10 @@ for iEvt in range(evt_tree.GetEntries()):
   #MC currently doesn't have unpacked Emtf tracks to remove duplicates.
   #If two regional muon candidates have exactly the same (eta, phi) then only keep one.
   if len(evt_tree.emtf_phi)>0:
-    emtf_pT.append(evt_tree.emtf_pt[0])
-    emtf_eta.append(evt_tree.emtf_eta[0])
-    emtf_phi.append(evt_tree.emtf_phi[0])
+    if evt_tree.emtf_quality[0]>12:
+      emtf_pT.append(evt_tree.emtf_pt[0])
+      emtf_eta.append(evt_tree.emtf_eta[0])
+      emtf_phi.append(evt_tree.emtf_phi[0])
 
     i=0
     while i<len(evt_tree.emtf_phi):
@@ -225,7 +218,7 @@ for iEvt in range(evt_tree.GetEntries()):
 	j+=1
 
       #If the track isn't a duplicate, save its properties.
-      if flag==len(emtf_phi):
+      if flag==len(emtf_phi) and evt_tree.emtf_quality[i]>12:
 	  emtf_pT.append(evt_tree.emtf_pt[i])
 	  emtf_eta.append(evt_tree.emtf_eta[i])
 	  emtf_phi.append(evt_tree.emtf_phi[i])
@@ -238,7 +231,7 @@ for iEvt in range(evt_tree.GetEntries()):
   #For the SM data use unpacked tracks as L1 muons.
   if dataset==1:
     if len(evt_tree.unpEmtf_Pt)>0:
-      if evt_tree.unpEmtf_Mode[0]>12:
+      if evt_tree.unpEmtf_Mode[0]>12: #Apply quality cut.
 	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
 	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
 	unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
@@ -268,14 +261,14 @@ for iEvt in range(evt_tree.GetEntries()):
   
 
   #######################################
-  #### Match offline muons to L1 muons
+  #### Match reco muons to L1 muons
   #######################################
   best1=0
   best2=0
   best1_backup=0
   best2_backup=0
 
-  #Match an offline muon to a L1 muon.
+  #Match a reco muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
   if dataset==1:
     j=0
@@ -338,7 +331,7 @@ for iEvt in range(evt_tree.GetEntries()):
 
       j+=1
 
-  #If the two reco muons match to the same track, keep the closer offline-L1 pair and match the other muon to its second closest track.
+  #If the two reco muons match to the same track, keep the closer reco-L1 pair and match the other muon to its second closest track.
   if len(emtf_pT)>=2:
     if b1_index==b2_index:
       if best1>best2: best1=best1_backup
@@ -351,9 +344,9 @@ for iEvt in range(evt_tree.GetEntries()):
   #####################################################
 
   if printouts == True:
-    print 'offline muon properties (pT, eta, phi (propagated)):'
-    print 'offline muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
-    print 'offline muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
+    print 'reco muon properties (pT, eta, phi (propagated)):'
+    print 'reco muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
+    print 'reco muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
     print 'L1 muon properties (pT, eta, phi):'
     i=0
     if dataset==1:
@@ -438,7 +431,7 @@ print '-------------'
 #### Fill kinematic histograms.
 ####################################################
 
-#Offline reco muons.
+#Reco muons.
 h_reco1_pt.Fill(reco_pT[0])
 h_reco2_pt.Fill(reco_pT[1])
 h_reco1_eta.Fill(reco_eta[0])
