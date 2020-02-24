@@ -231,7 +231,7 @@ for iEvt in range(evt_tree.GetEntries()):
   #For the SM data use unpacked tracks as L1 muons.
   if dataset==1:
     if len(evt_tree.unpEmtf_Pt)>0:
-      if evt_tree.unpEmtf_Mode[0]>12: #Apply quality cut.
+      if evt_tree.unpEmtf_Mode[0]>12: #Apply a quality cut.
 	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
 	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
 	unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
@@ -263,79 +263,37 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   #### Match reco muons to L1 muons
   #######################################
-  best1=0
-  best2=0
-  best1_backup=0
-  best2_backup=0
+  temp1, temp2 = [], [] 
 
   #Match a reco muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
   if dataset==1:
-    j=0
-    b1_index=-1
-    while j<len(unpEmtf_Phi_glob):
-      if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
-      if j==1: 
-	if h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j]) < best1:
-	  best1_backup = best1
-	  best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
-	  b1_index=1
-	else:
-	  b1_index=0
-	  best1_backup = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
-      j+=1
+    i=0
+    while i<len(unpEmtf_Eta):
+      temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
+      temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
+      i+=1
 
-    j=0
-    b2_index=-1
-    while j<len(unpEmtf_Phi_glob):
-      if j==0: best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
-      if j==1: 
-	if h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j]) < best2:
-	  best2_backup = best2
-	  best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
-	  b2_index=1
-	else:
-	  b2_index=0
-	  best2_backup = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[j], unpEmtf_Phi_glob[j])
+    if len(unpEmtf_Eta)>1:
+      dR1 = set(temp1) ; dR2 = set(temp2)
+      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
+      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2): best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
+      if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0] 
 
-      j+=1
 
-  #For MC dataset, use regional muon cand as L1 Muon, since unpacked tracks aren't available.
-  else:
-    j=0
-    b1_index=-1
-    while j<len(emtf_phi):
-      if j==0: best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[j], emtf_phi[j])
-      if j==1: 
-	if h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[j], emtf_phi[j]) < best1:
-	  best1_backup = best1
-	  best1 = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[j], emtf_phi[j])
-	  b1_index=1
-	else:
-	  b1_index=0
-	  best1_backup = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[j], emtf_phi[j])
-      j+=1
+  if dataset==2:
+    i=0
+    while i<len(emtf_eta):
+      temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[i], emtf_phi[i]))
+      temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[i], emtf_phi[i]))
+      i+=1
 
-    j=0
-    b2_index=-1
-    while j<len(emtf_phi):
-      if j==0: best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[j], emtf_phi[j])
-      if j==1: 
-	if h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[j], emtf_phi[j]) < best2:
-	  best2_backup = best2
-	  best2 = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[j], emtf_phi[j])
-	  b2_index=1
-	else:
-	  b2_index=0
-	  best2_backup = h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[j], emtf_phi[j])
+    if len(emtf_eta)>1:
+      dR1 = set(temp1) ; dR2 = set(temp2)
+      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
+      if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2): best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
+      if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0]
 
-      j+=1
-
-  #If the two reco muons match to the same track, keep the closer reco-L1 pair and match the other muon to its second closest track.
-  if len(emtf_pT)>=2:
-    if b1_index==b2_index:
-      if best1>best2: best1=best1_backup
-      if best2>best1: best2=best2_backup
   ## ================================================
   ## ================================================
 
@@ -388,9 +346,12 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.02: denom_dR_0200+=1
 
   if dataset==1: 
-    if best1>0.2 or best2>0.2 or len(unpEmtf_Eta) < 2: continue
-  else: 
-    if best1>0.2 or best2>0.2 or len(emtf_phi) < 2: continue
+    if len(unpEmtf_Eta)<2: continue
+    if best1>0.2 or best2>0.2: continue
+  if dataset==2: 
+    if len(emtf_phi)<2: continue
+    if best1>0.2 or best2>0.2: continue
+
   EMTFmatch_count+=1
 
   #Numerator histogram.
