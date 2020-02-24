@@ -62,18 +62,19 @@ if dataset!=1 and dataset!=2:
 print 'Some files will give an error message if they failed processing.'
 
 
-## ================ Histograms ======================
-##Plot options:
-
+############################################
+#### Initialise histograms and plot options.
+############################################
 eta_bins = [256, -2.8, 2.8]
 phi_bins = [256, -np.pi, np.pi]
 
 h_nEmtf = TH1D('h_nEmtf', '', 8, 0, 8)
 h_nReco = TH1D('h_nReco', '', 8, 0, 8)
 
+
+#Initialize kinematic histograms.
 h_dEta = TH1D('h_dEta', '', eta_bins[0], -0.2, 0.2)
 h_dPhi = TH1D('h_dPhi', '', phi_bins[0], -0.2, 0.2)
-
 
 h_emtf_pt = TH1D('h_emtf_pt', '', 70, 0, 300)
 h_emtf1_pt = TH1D('h_emtf1_pt', '', 70, 0, 300)
@@ -95,10 +96,7 @@ h_reco_phi = TH1D('h_reco_phi', '', phi_bins[0], phi_bins[1], phi_bins[2])
 h_reco1_phi = TH1D('h_reco1_phi', '', phi_bins[0], phi_bins[1], phi_bins[2])
 h_reco2_phi = TH1D('h_reco2_phi', '', phi_bins[0], phi_bins[1], phi_bins[2])
 
-h_unpEmtf_pt = TH1D('h_unpEmtf_pt', '', 256, 0, 256)
-h_unpEmtf_eta = TH1D('h_unpEmtf_eta', '', 256, -2.8, 2.8)
-h_unpEmtf_phi_fp = TH1D('h_unpEmtf_phi', '', 256, -180, 180)
-
+#Initialize efficiency histograms (numerator, denominator).
 h_dEta_denom = TH1D('h_dEta_denom', '', 64, -0.3, 0.3)
 h_dPhi_denom = TH1D('h_dPhi_denom', '', 64, -0.3, 0.3)
 h_dR_denom   = TH1D('h_dR_denom', '', 64, 0, 0.3)
@@ -106,13 +104,12 @@ h_dEta_numer = TH1D('h_dEta_numer', '', 64, -0.3, 0.3)
 h_dPhi_numer = TH1D('h_dPhi_numer', '', 64, -0.3, 0.3)
 h_dR_numer   = TH1D('h_dR_numer', '', 64, 0, 0.3)
 
-#Counters to show number of events after each selection.
-none_count       = 0
-med_count        = 0
-pT_count         = 0
+#Counters to keep track of the number of events after each selection.
+prefilter_count  = 0
+medium_count     = 0
 EMTFmatch_count  = 0
 
-#Some variables to compute an average efficiency at the end.
+#Variables used to compute binned average efficiencies at the end.
 denom_dR_3020 = 0. ; numer_dR_3020 = 0.
 denom_dR_2010 = 0. ; numer_dR_2010 = 0.
 denom_dR_1008 = 0. ; numer_dR_1008 = 0.
@@ -120,18 +117,24 @@ denom_dR_0806 = 0. ; numer_dR_0806 = 0.
 denom_dR_0604 = 0. ; numer_dR_0604 = 0.
 denom_dR_0402 = 0. ; numer_dR_0402 = 0.
 denom_dR_0200 = 0. ; numer_dR_0200 = 0.
-
 ## ================================================
-# Loop over over events in TFile
+## ================================================
+
+
+
+#######################################
+#### Event loop.
+#######################################
 for iEvt in range(evt_tree.GetEntries()):
   if MAX_EVT > 0 and iEvt > MAX_EVT: break
   if iEvt % PRT_EVT is 0: print 'Event #', iEvt
   
   evt_tree.GetEntry(iEvt)
 
+  #In the MC, some events have less than two reco muons. Ignore these events.
   if len(evt_tree.reco_eta) < 2: continue
 
-  #Default values in ntuples are -99, so get rid of any event not defined correctly.
+  #Default values in ntuples are -99. Remove events not defined correctly.
   i=0
   while i<len(evt_tree.reco_eta):
     if (evt_tree.reco_pt[i] < -90 or evt_tree.reco_eta[i] < -90 or evt_tree.reco_phi[i] < -90): continue
@@ -273,9 +276,7 @@ for iEvt in range(evt_tree.GetEntries()):
       temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
       i+=1
 
-    if temp1[0]==temp1[1]: 
-      print 'Skipped event.'
-      continue #Very rarely, the temp elements will be equal and the code will crash. Skip these events.
+    if temp1[0]==temp1[1]: continue #Very rarely (1 in 30K events), the temp elements will be equal and the code will crash. Skip these events.
 
     #Make sure that you don't match both reco muons to the same L1 muon (check the index of smallest dR)
     #Store the reco-L1 separation distances into variables 'best1, best2'. Use for a later selection.
@@ -327,9 +328,9 @@ for iEvt in range(evt_tree.GetEntries()):
   ##### Apply selections, calculate trigger efficiency.
   #####################################################
 
-  none_count+=1   #No selections applied (only filter)
+  prefilter_count+=1   #No selections applied (only filter)
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
-  med_count+=1    #Events that pass medium selection.
+  medium_count+=1    #Events that pass medium selection.
 
   dEta = reco_eta_prop[0] - reco_eta_prop[1]
   dPhi = reco_phi_prop[0] - reco_phi_prop[1]
@@ -377,8 +378,8 @@ for iEvt in range(evt_tree.GetEntries()):
 ####################################################
 print '-------------'
 print 'nMuons after selections:'
-print 'pre-selections only:', none_count
-print 'both reco muons are medium ID:', med_count
+print 'pre-selections only:', prefilter_count
+print 'both reco muons are medium ID:', medium_count
 print 'both muons are EMTF matched:', EMTFmatch_count
 print '-------------'
 print 'Averaged efficiency binned:'
