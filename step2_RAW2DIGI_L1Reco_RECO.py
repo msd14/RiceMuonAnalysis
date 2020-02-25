@@ -25,12 +25,12 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(30)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
-   fileNames = cms.untracked.vstring('file:step1_99.root'
+   fileNames = cms.untracked.vstring('/store/user/mdecaro/step1/step1_58.root'
                  ),
     secondaryFileNames = cms.untracked.vstring()
 )
@@ -56,9 +56,9 @@ process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(31457280),
-    fileName = cms.untracked.string('file:step2_99.root'
+    fileName = cms.untracked.string('file:step2_58.root'
                ),
-    outputCommands = process.AODSIMEventContent.outputCommands
+    outputCommands = process.AODSIMEventContent.outputCommands+['keep *_emtfStage2Digis_*_*']
 )
 
 # Additional output definition
@@ -75,7 +75,7 @@ process.endjob_step = cms.EndPath(process.endOfProcess)
 process.AODSIMoutput_step = cms.EndPath(process.AODSIMoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.endjob_step,process.AODSIMoutput_step)
+process.schedule = cms.Schedule(process.raw2digi_step,process.L1Reco_step,process.reconstruction_step,process.endjob_step, process.AODSIMoutput_step)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
