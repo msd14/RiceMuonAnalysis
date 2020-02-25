@@ -313,8 +313,7 @@ for iEvt in range(evt_tree.GetEntries()):
     h_reco1_pt.Fill(reco_pT[0])   ; h_reco2_pt.Fill(reco_pT[1])
     h_reco1_eta.Fill(reco_eta[0]) ; h_reco2_eta.Fill(reco_eta[1])
     h_reco1_phi.Fill(reco_phi[0]) ; h_reco2_phi.Fill(reco_phi[1])
-    if dataset==1: h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
-    if dataset==2: h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
+    h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
 
     for i in range(len(reco_pT)):
       h_reco_pt.Fill(reco_pT[i])
