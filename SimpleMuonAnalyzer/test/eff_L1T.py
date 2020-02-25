@@ -344,8 +344,10 @@ for iEvt in range(evt_tree.GetEntries()):
   #####################################################
   ##### Some useful printouts.
   #####################################################
+  dEta = reco_eta_prop[0] - reco_eta_prop[1]
+  dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
 
-  if printouts == True:
+  if printouts == True and dEta < 0.15 and dPhi < 0.15:
     print 'reco muon properties (pT, eta, phi (propagated)):'
     print 'reco muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
     print 'reco muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
