@@ -14,7 +14,7 @@ print '------> Importing Root File'
 MAX_EVT  = -1 ## Maximum number of events to process
 PRT_EVT  = 10000 ## Print every Nth event
 printouts = False
-plot_kinematics = True
+plot_kinematics = False
 plot_efficiency = True
 
 ## ================ Event branches ======================
@@ -118,7 +118,7 @@ denom_dR_0402 = 0. ; numer_dR_0402 = 0.
 denom_dR_0200 = 0. ; numer_dR_0200 = 0.
 ## ================================================
 ## ================================================
-
+eta_arr, phi_arr = [],[]
 
 #######################################
 #### Event loop.
@@ -146,16 +146,39 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   reco_pT, reco_eta, reco_phi, reco_eta_prop, reco_phi_prop = [],[],[],[],[]
 
+  for i in range(len(evt_tree.reco_eta)):
+    reco_eta.append(evt_tree.reco_eta[i])
+
+ 
+  endcap_positive=0; endcap_negative=0
+  temp1 = 0.6 ; temp2 = 0.6
   #For the MC, there can be up to eight offline reco muons per event. 
   #Find a muon pair with dR < 0.5 that pass through an endcap.
-  index = [-1, -1]
+  index = [-1, -1] ; count=0
   for i in range(len(evt_tree.reco_eta)):
     for j in range(len(evt_tree.reco_eta)):
-      if i!=j and abs(evt_tree.reco_eta[i]) > 1.2 and abs(evt_tree.reco_eta[i]) < 2.4 and abs(evt_tree.reco_eta[j]) > 1.2 and abs(evt_tree.reco_eta[j]) < 2.4:
-	if h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j]) < 0.5:
-	  index = [i, j]
-	  break
+      if i!=j and evt_tree.reco_eta[i] > 1.2 and evt_tree.reco_eta[i] < 2.4 and evt_tree.reco_eta[j] > 1.2 and evt_tree.reco_eta[j] < 2.4:
+	temp1 = h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
+	endcap_positive+=1
+	index1 = [i, j]
+      elif i!=j and evt_tree.reco_eta[i] < -1.2 and evt_tree.reco_eta[i] > -2.4 and evt_tree.reco_eta[j] < -1.2 and evt_tree.reco_eta[j] > -2.4:
+	temp2 = h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
+	endcap_negative+=1
+	index2 = [i, j]
 
+  if endcap_positive>2 or endcap_negative>2: continue #If more than one pair in an endcap, skip the event.
+  if temp1 == temp2: continue
+  if temp1 > 0.5 and temp2 > 0.5: continue #
+
+  #print temp1, temp2
+  if temp1 < temp2: index = index1
+  if temp1 > temp2: index = index2
+
+  #print index
+  #print reco_eta
+  #print endcap_positive+endcap_negative
+  #print '------'
+  #continue
   #If no good pair, skip the event.
   if index[0]<0: continue
 
@@ -228,21 +251,22 @@ for iEvt in range(evt_tree.GetEntries()):
 	unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
 	unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
 
-      for i in range(len(evt_tree.unpEmtf_Eta)):
+      for i in range(1, len(evt_tree.unpEmtf_Eta)):
 	flag=0
 
 	#If two tracks differ in integer phi by exactly 3600 (duplicate), only keep one.
 	for j in range(len(unpEmtf_Eta)):
-	  if i!=j and abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) != 3600 and abs(unpEmtf_Phi_glob[j] - evt_tree.unpEmtf_Phi_glob[i]) != 0:
-	    flag+=1
+	  if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) == 3600:
+	    flag=1
 
 	#If the track isn't a duplicate, save its properties.
-	if flag==len(unpEmtf_Eta) and evt_tree.unpEmtf_Mode[i]>12:
+	if flag==0 and evt_tree.unpEmtf_Mode[i]>12:
 	    unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
 	    unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
 	    unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[i])
 	    unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
 	    unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i]*np.pi/180.)
+
   ## ================================================
   ## ================================================
   
@@ -283,6 +307,43 @@ for iEvt in range(evt_tree.GetEntries()):
   ## ================================================
 
   #####################################################
+  ##### Fill kinematic histograms.
+  #####################################################
+  if plot_kinematics == True:
+    #Reco muons.
+    h_reco1_pt.Fill(reco_pT[0])   ; h_reco2_pt.Fill(reco_pT[1])
+    h_reco1_eta.Fill(reco_eta[0]) ; h_reco2_eta.Fill(reco_eta[1])
+    h_reco1_phi.Fill(reco_phi[0]) ; h_reco2_phi.Fill(reco_phi[1])
+    if dataset==1: h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
+    if dataset==2: h_dEta.Fill(reco_eta[0] - reco_eta[1]) ; h_dPhi.Fill(reco_phi[0] - reco_phi[1])
+
+    for i in range(len(reco_pT)):
+      h_reco_pt.Fill(reco_pT[i])
+      h_reco_eta.Fill(reco_eta[i])
+      h_reco_phi.Fill(reco_phi[i])
+
+    #Regional muon candidate kinematics.
+    for j in range(len(emtf_pT)):
+      h_emtf_pt.Fill(emtf_pT[j])
+      h_emtf_eta.Fill(emtf_eta[j])
+      h_emtf_phi.Fill(emtf_phi[j])
+
+      if j==0: 
+	h_emtf1_pt.Fill(emtf_pT[j])
+	h_emtf1_eta.Fill(emtf_eta[j])
+	h_emtf1_phi.Fill(emtf_phi[j])
+      if j==1:
+	h_emtf2_pt.Fill(emtf_pT[j])
+	h_emtf2_eta.Fill(emtf_eta[j])
+	h_emtf2_phi.Fill(emtf_phi[j])
+
+
+  eta_arr.append(reco_eta_prop[0] - reco_eta_prop[1])
+  phi_arr.append(reco_phi_prop[0] - reco_phi_prop[1])
+  ## ================================================
+  ## ================================================
+
+  #####################################################
   ##### Some useful printouts.
   #####################################################
 
@@ -310,9 +371,14 @@ for iEvt in range(evt_tree.GetEntries()):
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
   medium_count+=1    #Events that pass medium selection.
 
-  dEta = reco_eta_prop[0] - reco_eta_prop[1]
-  dPhi = reco_phi_prop[0] - reco_phi_prop[1]
-  dR = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
+  if dataset==1:
+    dEta = reco_eta_prop[0] - reco_eta_prop[1]
+    dPhi = reco_phi_prop[0] - reco_phi_prop[1]
+    dR = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
+  else:
+    dEta = reco_eta[0] - reco_eta[1]
+    dPhi = reco_phi[0] - reco_phi[1]
+    dR = h.CalcDR2(reco_eta[0], reco_phi[0], reco_eta[1], reco_phi[1])
 
   #Denominator histogram.
   h_dEta_denom.Fill(dEta)
@@ -369,47 +435,6 @@ print '0.06 > dR > 0.04: ', numer_dR_0604/denom_dR_0604
 print '0.04 > dR > 0.02: ', numer_dR_0402/denom_dR_0402
 print '0.02 > dR: ', numer_dR_0200/denom_dR_0200
 print '-------------'
-
-####################################################
-#### Fill kinematic histograms.
-####################################################
-
-#Reco muons.
-h_reco1_pt.Fill(reco_pT[0])
-h_reco2_pt.Fill(reco_pT[1])
-h_reco1_eta.Fill(reco_eta[0])
-h_reco2_eta.Fill(reco_eta[1])
-h_reco1_phi.Fill(reco_phi[0])
-h_reco2_phi.Fill(reco_phi[1])
-h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1])
-h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
-
-for j in range(len(reco_pT)):
-  h_reco_pt.Fill(reco_pT[j])
-  h_reco_eta.Fill(reco_eta[j])
-  h_reco_phi.Fill(reco_phi[j])
-
-#Regional muon candidate kinematics.
-for j in range(len(emtf_pT)):
-  if j==0: 
-    h_emtf_pt.Fill(emtf_pT[j])
-    h_emtf_eta.Fill(emtf_eta[j])
-    h_emtf_phi.Fill(emtf_phi[j])
-
-    h_emtf1_pt.Fill(emtf_pT[j])
-    h_emtf1_eta.Fill(emtf_eta[j])
-    h_emtf1_phi.Fill(emtf_phi[j])
-
-  if j==1:
-    h_emtf_pt.Fill(emtf_pT[j])
-    h_emtf_eta.Fill(emtf_eta[j])
-    h_emtf_phi.Fill(emtf_phi[j])
-
-    h_emtf2_pt.Fill(emtf_pT[j])
-    h_emtf2_eta.Fill(emtf_eta[j])
-    h_emtf2_phi.Fill(emtf_phi[j])
-  ## ================================================
-  ## ================================================
 
 ############################################################
 ### Write output file with histograms and efficiencies ###
@@ -506,8 +531,8 @@ if plot_kinematics == True:
   h_reco_eta.SetMinimum(1)
   h_reco_eta.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco_eta.SetTitle('All offline reco muon #eta')
-  if dataset==2: h_reco_eta.SetTitle('All offline reco muon #eta (MC)')
+  if dataset==1: h_reco_eta.SetTitle('All offline reco muon #eta (propagated)')
+  if dataset==2: h_reco_eta.SetTitle('All offline reco muon #eta (propagated) (MC)')
   h_reco_eta.GetXaxis().SetTitle('#eta')
   h_reco_eta.Write()
   if dataset==1: c4.SaveAs("trees/reco_eta.png")
@@ -519,8 +544,8 @@ if plot_kinematics == True:
   h_reco1_eta.SetMinimum(1)
   h_reco1_eta.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco1_eta.SetTitle('First offline reco muon #eta')
-  if dataset==2: h_reco1_eta.SetTitle('First offline reco muon #eta (MC)')
+  if dataset==1: h_reco1_eta.SetTitle('First offline reco muon #eta (propagated)')
+  if dataset==2: h_reco1_eta.SetTitle('First offline reco muon #eta (propagated) (MC)')
   h_reco1_eta.GetXaxis().SetTitle('#eta')
   h_reco1_eta.Write()
   if dataset==1: c5.SaveAs("trees/reco1_eta.png")
@@ -532,8 +557,8 @@ if plot_kinematics == True:
   h_reco2_eta.SetMinimum(1)
   h_reco2_eta.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco2_eta.SetTitle('Second offline reco muon #eta')
-  if dataset==2: h_reco2_eta.SetTitle('Second offline reco muon #eta (MC)')
+  if dataset==1: h_reco2_eta.SetTitle('Second offline reco muon #eta (propagated)')
+  if dataset==2: h_reco2_eta.SetTitle('Second offline reco muon #eta (propagated) (MC)')
   h_reco2_eta.GetXaxis().SetTitle('#eta')
   h_reco2_eta.Write()
   if dataset==1: c5.SaveAs("trees/reco2_eta.png")
@@ -545,8 +570,8 @@ if plot_kinematics == True:
   h_reco_phi.SetMinimum(1)
   h_reco_phi.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco_phi.SetTitle('All offline reco muon #phi')
-  if dataset==2: h_reco_phi.SetTitle('All offline reco muon #phi (MC)')
+  if dataset==1: h_reco_phi.SetTitle('All offline reco muon #phi (propagated)')
+  if dataset==2: h_reco_phi.SetTitle('All offline reco muon #phi (propagated) (MC)')
   h_reco_phi.GetXaxis().SetTitle('#phi')
   h_reco_phi.Write()
   if dataset==1: c6.SaveAs("trees/reco_phi.png")
@@ -558,8 +583,8 @@ if plot_kinematics == True:
   h_reco1_phi.SetMinimum(1)
   h_reco1_phi.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco1_phi.SetTitle('First offline reco muon #phi')
-  if dataset==2: h_reco1_phi.SetTitle('First offline reco muon #phi (MC)')
+  if dataset==1: h_reco1_phi.SetTitle('First offline reco muon #phi (propagated)')
+  if dataset==2: h_reco1_phi.SetTitle('First offline reco muon #phi (propagated) (MC)')
   h_reco1_phi.GetXaxis().SetTitle('#phi')
   h_reco1_phi.Write()
   if dataset==1: c7.SaveAs("trees/reco1_phi.png")
@@ -571,8 +596,8 @@ if plot_kinematics == True:
   h_reco2_phi.SetMinimum(1)
   h_reco2_phi.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_reco2_phi.SetTitle('Second offline reco muon #phi')
-  if dataset==2: h_reco2_phi.SetTitle('Second offline reco muon #phi (MC)')
+  if dataset==1: h_reco2_phi.SetTitle('Second offline reco muon #phi (propagated)')
+  if dataset==2: h_reco2_phi.SetTitle('Second offline reco muon #phi (propagated) (MC)')
   h_reco2_phi.GetXaxis().SetTitle('#phi')
   h_reco2_phi.Write()
   if dataset==1: c8.SaveAs("trees/reco2_phi.png")
@@ -727,8 +752,8 @@ if plot_kinematics == True:
   h_dEta.SetMinimum(1)
   h_dEta.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_dEta.SetTitle('Difference between reco muon #eta')
-  if dataset==2: h_dEta.SetTitle('Difference between reco muon #eta (MC)')
+  if dataset==1: h_dEta.SetTitle('Difference between reco muon #eta (propagated)')
+  if dataset==2: h_dEta.SetTitle('Difference between reco muon #eta (at vertex) (MC)')
   h_dEta.GetXaxis().SetTitle('#Delta #eta')
   h_dEta.Write()
   if dataset==1: c35.SaveAs("trees/dEta.png")
@@ -740,10 +765,25 @@ if plot_kinematics == True:
   h_dPhi.SetMinimum(1)
   h_dPhi.Draw()
   gStyle.SetOptStat(0)
-  if dataset==1: h_dPhi.SetTitle('Difference between reco muon #phi')
-  if dataset==2: h_dPhi.SetTitle('Difference between reco muon #phi (MC)')
+  if dataset==1: h_dPhi.SetTitle('Difference between reco muon #phi (propagated)')
+  if dataset==2: h_dPhi.SetTitle('Difference between reco muon #phi (at vertex) (MC)')
   h_dPhi.GetXaxis().SetTitle('#Delta #phi')
   h_dPhi.Write()
   if dataset==1: c36.SaveAs("trees/dPhi.png")
   if dataset==2: c36.SaveAs("trees/dPhi_MC.png")
   c36.Close()
+
+
+#A = np.array(eta_arr)
+#B = np.array(phi_arr)
+##print A,B
+##c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+#g = TGraph(len(eta_arr), A, B)
+#g.Draw("A*")
+#g.GetYaxis().SetRangeUser(-0.3,0.3)
+#g.GetXaxis().SetRangeUser(-0.3,0.3)
+##g.Write()
+#gPad.Update()
+##c37.SaveAs("test.png")
+##c37.Close()
+#raw_input("a")
