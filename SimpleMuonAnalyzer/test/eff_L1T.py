@@ -67,6 +67,7 @@ print 'Some files will give an error message if they failed processing.'
 ############################################
 eta_bins = [256, -2.8, 2.8]
 phi_bins = [256, -np.pi, np.pi]
+reco_dEta = [] ; reco_dPhi = []
 
 h_nEmtf = TH1D('h_nEmtf', '', 8, 0, 8)
 h_nReco = TH1D('h_nReco', '', 8, 0, 8)
@@ -118,7 +119,6 @@ denom_dR_0402 = 0. ; numer_dR_0402 = 0.
 denom_dR_0200 = 0. ; numer_dR_0200 = 0.
 ## ================================================
 ## ================================================
-eta_arr, phi_arr = [],[]
 
 #######################################
 #### Event loop.
@@ -158,11 +158,11 @@ for iEvt in range(evt_tree.GetEntries()):
   for i in range(len(evt_tree.reco_eta)):
     for j in range(len(evt_tree.reco_eta)):
       if i!=j and evt_tree.reco_eta[i] > 1.2 and evt_tree.reco_eta[i] < 2.4 and evt_tree.reco_eta[j] > 1.2 and evt_tree.reco_eta[j] < 2.4:
-	temp1 = h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
+	temp1 = h.CalcDR(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
 	endcap_positive+=1
 	index1 = [i, j]
       elif i!=j and evt_tree.reco_eta[i] < -1.2 and evt_tree.reco_eta[i] > -2.4 and evt_tree.reco_eta[j] < -1.2 and evt_tree.reco_eta[j] > -2.4:
-	temp2 = h.CalcDR2(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
+	temp2 = h.CalcDR(evt_tree.reco_eta[i], evt_tree.reco_phi[i], evt_tree.reco_eta[j], evt_tree.reco_phi[j])
 	endcap_negative+=1
 	index2 = [i, j]
 
@@ -229,18 +229,18 @@ for iEvt in range(evt_tree.GetEntries()):
       #If multiple L1 muons have exactly the same (eta,phi), only keep one.
       for j in range(len(emtf_phi)):
 	if emtf_eta[j]!= evt_tree.emtf_eta[i] or emtf_phi[j]!= evt_tree.emtf_phi[i]:
-	  flag=1
+	  flag+=1
 
 
       #If the track isn't a duplicate, save its properties.
-      if flag==0 and evt_tree.emtf_quality[i]>12:
+      if flag==len(emtf_phi) and evt_tree.emtf_quality[i]>12:
 	  emtf_pT.append(evt_tree.emtf_pt[i])
 	  emtf_eta.append(evt_tree.emtf_eta[i])
 	  emtf_phi.append(evt_tree.emtf_phi[i])
 
   ## ================================================
   ## ================================================
-  unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi, unpEmtf_Phi_fp, unpEmtf_Phi_glob = [],[],[],[],[] #L1 (Unpacked Emtf track) properties.
+  unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi_fp, unpEmtf_Phi_glob = [],[],[],[] #L1 (Unpacked Emtf track) properties.
 
   #For the SM data use unpacked tracks as L1 muons.
   if dataset==1:
@@ -248,7 +248,6 @@ for iEvt in range(evt_tree.GetEntries()):
       if evt_tree.unpEmtf_Mode[0]>12: #Apply a quality cut.
 	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
 	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
-	unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[0])
 	unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
 	unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
 
@@ -264,7 +263,6 @@ for iEvt in range(evt_tree.GetEntries()):
 	if flag==0 and evt_tree.unpEmtf_Mode[i]>12:
 	    unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
 	    unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
-	    unpEmtf_Phi.append(evt_tree.unpEmtf_Phi[i])
 	    unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
 	    unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i]*np.pi/180.)
 
@@ -280,8 +278,8 @@ for iEvt in range(evt_tree.GetEntries()):
   #For SM dataset, use unpacked emtf track as L1 Muon.
   if dataset==1 and len(unpEmtf_Eta)>1:
     for i in range(len(unpEmtf_Eta)):
-      temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
-      temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
+      temp1.append(h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
+      temp2.append(h.CalcDR(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
 
     if temp1[0]==temp1[1]: continue #Very rarely (1 in 30K events), the temp elements will be equal and the code will crash. Skip these events.
 
@@ -296,8 +294,8 @@ for iEvt in range(evt_tree.GetEntries()):
   #The MC doesn't have unpacked tracks, so use regional muon cands instead for L1 muons.
   if dataset==2 and len(emtf_eta)>1:
     for i in range(len(emtf_eta)):
-      temp1.append(h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[i], emtf_phi[i]))
-      temp2.append(h.CalcDR2(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[i], emtf_phi[i]))
+      temp1.append(h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[i], emtf_phi[i]))
+      temp2.append(h.CalcDR(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[i], emtf_phi[i]))
 
     dR1 = set(temp1) ; dR2 = set(temp2)
     if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2)[0]: best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
@@ -316,7 +314,7 @@ for iEvt in range(evt_tree.GetEntries()):
     h_reco1_eta.Fill(reco_eta[0]) ; h_reco2_eta.Fill(reco_eta[1])
     h_reco1_phi.Fill(reco_phi[0]) ; h_reco2_phi.Fill(reco_phi[1])
     if dataset==1: h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
-    if dataset==2: h_dEta.Fill(reco_eta[0] - reco_eta[1]) ; h_dPhi.Fill(reco_phi[0] - reco_phi[1])
+    if dataset==2: h_dEta.Fill(reco_eta_prop[0] - reco_eta_prop[1]) ; h_dPhi.Fill(reco_phi_prop[0] - reco_phi_prop[1])
 
     for i in range(len(reco_pT)):
       h_reco_pt.Fill(reco_pT[i])
@@ -338,9 +336,8 @@ for iEvt in range(evt_tree.GetEntries()):
 	h_emtf2_eta.Fill(emtf_eta[j])
 	h_emtf2_phi.Fill(emtf_phi[j])
 
-
-  eta_arr.append(reco_eta_prop[0] - reco_eta_prop[1])
-  phi_arr.append(reco_phi_prop[0] - reco_phi_prop[1])
+  reco_dEta.append(reco_eta_prop[0] - reco_eta_prop[1])
+  reco_dPhi.append(reco_phi_prop[0] - reco_phi_prop[1])
   ## ================================================
   ## ================================================
 
@@ -372,14 +369,9 @@ for iEvt in range(evt_tree.GetEntries()):
   if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
   medium_count+=1    #Events that pass medium selection.
 
-  if dataset==1:
-    dEta = reco_eta_prop[0] - reco_eta_prop[1]
-    dPhi = reco_phi_prop[0] - reco_phi_prop[1]
-    dR = h.CalcDR2(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
-  else:
-    dEta = reco_eta[0] - reco_eta[1]
-    dPhi = reco_phi[0] - reco_phi[1]
-    dR = h.CalcDR2(reco_eta[0], reco_phi[0], reco_eta[1], reco_phi[1])
+  dEta = reco_eta_prop[0] - reco_eta_prop[1]
+  dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
+  dR = h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
 
   #Denominator histogram.
   h_dEta_denom.Fill(dEta)
@@ -488,6 +480,17 @@ if plot_efficiency == True:
 ################
 
 if plot_kinematics == True:
+  temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
+  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
+  EtaPhiScatter.Draw("A*")
+  EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
+  EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
+  gPad.Update()
+  if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
+  if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
+  c37.Close()
+
   c1 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
   gPad.SetLogy()
   h_reco_pt.SetMinimum(1)
@@ -773,18 +776,3 @@ if plot_kinematics == True:
   if dataset==1: c36.SaveAs("trees/dPhi.png")
   if dataset==2: c36.SaveAs("trees/dPhi_MC.png")
   c36.Close()
-
-
-#A = np.array(eta_arr)
-#B = np.array(phi_arr)
-##print A,B
-##c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-#g = TGraph(len(eta_arr), A, B)
-#g.Draw("A*")
-#g.GetYaxis().SetRangeUser(-0.3,0.3)
-#g.GetXaxis().SetRangeUser(-0.3,0.3)
-##g.Write()
-#gPad.Update()
-##c37.SaveAs("test.png")
-##c37.Close()
-#raw_input("a")

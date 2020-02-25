@@ -45,10 +45,8 @@ def CalcDPhi( phi1, phi2 ):
 	if math.sin( phi1 - phi2 ) < 0: dPhi *= -1
 	return dPhi
 
-def CalcDR2( eta1, phi1, eta2, phi2 ):
+def CalcDR( eta1, phi1, eta2, phi2 ):
 	return math.sqrt( math.pow(CalcDPhi(phi1, phi2), 2) + math.pow(eta1 - eta2, 2) )
-def CalcDR( eta1, eta2, dPhiNorm ):
-	return math.sqrt( math.pow(dPhiNorm, 2) + math.pow(eta1 - eta2, 2) )
 
 def HitPhiInChamber( Hit ):
 
