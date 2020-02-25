@@ -226,13 +226,14 @@ for iEvt in range(evt_tree.GetEntries()):
       flag=0
 
       #Compare the (eta,phi) of current track to the ones already saved.
+      #If multiple L1 muons have exactly the same (eta,phi), only keep one.
       for j in range(len(emtf_phi)):
 	if emtf_eta[j]!= evt_tree.emtf_eta[i] or emtf_phi[j]!= evt_tree.emtf_phi[i]:
-	  flag+=1
+	  flag=1
 
 
       #If the track isn't a duplicate, save its properties.
-      if flag==len(emtf_phi) and evt_tree.emtf_quality[i]>12:
+      if flag==0 and evt_tree.emtf_quality[i]>12:
 	  emtf_pT.append(evt_tree.emtf_pt[i])
 	  emtf_eta.append(evt_tree.emtf_eta[i])
 	  emtf_phi.append(evt_tree.emtf_phi[i])
@@ -256,7 +257,7 @@ for iEvt in range(evt_tree.GetEntries()):
 
 	#If two tracks differ in integer phi by exactly 3600 (duplicate), only keep one.
 	for j in range(len(unpEmtf_Eta)):
-	  if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) == 3600:
+	  if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) == 3600: # and abs(unpEmtf_Phi[j] - evt_tree.unpEmtf_Phi[i]) == 0:
 	    flag=1
 
 	#If the track isn't a duplicate, save its properties.
