@@ -41,11 +41,11 @@ if dataset == 1:
   
 
 if dataset == 2:
-  dir1 = 'root://cmsxrootd.fnal.gov//store/user/mdecaro/step1/step2/L1Ntuples/'
-  nFiles = int(input("How many input MC files? (Min:1, Max: 60):"))
+  dir1 = '/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_6_0/src/MSSMD_Ntuples/'
+  nFiles = int(input("How many input MC files? (Min:1, Max: 5):"))
 
-  if nFiles>60 or nFiles<1: 
-    print "Choose a number of input MC files between 1 than 60."
+  if nFiles>5 or nFiles<1: 
+    print "Choose a number of input MC files between 1 than 5."
     sys.exit()
 
   i=1
@@ -144,7 +144,7 @@ for iEvt in range(evt_tree.GetEntries()):
   #######################################
   #### Save RECO muon properties.
   #######################################
-  reco_pT, reco_eta, reco_phi, reco_eta_prop, reco_phi_prop = [],[],[],[],[]
+  reco_pT, reco_eta, reco_phi, reco_eta_prop, reco_phi_prop, recoismed = [],[],[],[],[],[]
 
   for i in range(len(evt_tree.reco_eta)):
     reco_eta.append(evt_tree.reco_eta[i])
@@ -174,11 +174,7 @@ for iEvt in range(evt_tree.GetEntries()):
   if temp1 < temp2: index = index1
   if temp1 > temp2: index = index2
 
-  #print index
-  #print reco_eta
-  #print endcap_positive+endcap_negative
-  #print '------'
-  #continue
+
   #If no good pair, skip the event.
   if index[0]<0: continue
 
@@ -192,6 +188,7 @@ for iEvt in range(evt_tree.GetEntries()):
       reco_phi.append(evt_tree.reco_phi[j])
       reco_eta_prop.append(evt_tree.reco_eta_prop[j])
       reco_phi_prop.append(evt_tree.reco_phi_prop[j])
+      recoismed.append(evt_tree.reco_isMediumMuon[j])
 
   else:
     for i in range(1, -1, -1):
@@ -201,6 +198,7 @@ for iEvt in range(evt_tree.GetEntries()):
       reco_phi.append(evt_tree.reco_phi[j])
       reco_eta_prop.append(evt_tree.reco_eta_prop[j])
       reco_phi_prop.append(evt_tree.reco_phi_prop[j])
+      recoismed.append(evt_tree.reco_isMediumMuon[j])
 
 
   #A pT filter wasn't applied to the MC, so apply one.
@@ -212,59 +210,30 @@ for iEvt in range(evt_tree.GetEntries()):
   #################################################
   #### Save L1 muon properties. Remove duplicates.
   #################################################
-  emtf_pT, emtf_eta, emtf_phi = [], [], []   #L1 (regional muon candidate) properties.
-
-  #MC currently doesn't have unpacked Emtf tracks to remove duplicates.
-  #If two regional muon candidates have exactly the same (eta, phi) then only keep one.
-  if len(evt_tree.emtf_phi)>0:
-    if evt_tree.emtf_quality[0]>12:
-      emtf_pT.append(evt_tree.emtf_pt[0])
-      emtf_eta.append(evt_tree.emtf_eta[0])
-      emtf_phi.append(evt_tree.emtf_phi[0])
-
-    for i in range(len(evt_tree.emtf_phi)):
-      flag=0
-
-      #Compare the (eta,phi) of current track to the ones already saved.
-      #If multiple L1 muons have exactly the same (eta,phi), only keep one.
-      for j in range(len(emtf_phi)):
-	if emtf_eta[j]!= evt_tree.emtf_eta[i] or emtf_phi[j]!= evt_tree.emtf_phi[i]:
-	  flag+=1
-
-
-      #If the track isn't a duplicate, save its properties.
-      if flag==len(emtf_phi) and evt_tree.emtf_quality[i]>12:
-	  emtf_pT.append(evt_tree.emtf_pt[i])
-	  emtf_eta.append(evt_tree.emtf_eta[i])
-	  emtf_phi.append(evt_tree.emtf_phi[i])
-
-  ## ================================================
-  ## ================================================
   unpEmtf_Pt, unpEmtf_Eta, unpEmtf_Phi_fp, unpEmtf_Phi_glob = [],[],[],[] #L1 (Unpacked Emtf track) properties.
 
   #For the SM data use unpacked tracks as L1 muons.
-  if dataset==1:
-    if len(evt_tree.unpEmtf_Pt)>0:
-      if evt_tree.unpEmtf_Mode[0]>12: #Apply a quality cut.
-	unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
-	unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
-	unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
-	unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
+  if len(evt_tree.unpEmtf_Pt)>0:
+    if evt_tree.unpEmtf_Mode[0]>12: #Apply a quality cut.
+      unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[0])
+      unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[0])
+      unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[0])
+      unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[0]*np.pi/180.)
 
-      for i in range(1, len(evt_tree.unpEmtf_Eta)):
-	flag=0
+    for i in range(1, len(evt_tree.unpEmtf_Eta)):
+      flag=0
 
-	#If two tracks differ in integer phi by exactly 3600 (duplicate), only keep one.
-	for j in range(len(unpEmtf_Eta)):
-	  if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) == 3600: # and abs(unpEmtf_Phi[j] - evt_tree.unpEmtf_Phi[i]) == 0:
-	    flag=1
+      #If two tracks differ in integer phi by exactly 3600 (duplicate), only keep one.
+      for j in range(len(unpEmtf_Eta)):
+	if abs(unpEmtf_Phi_fp[j] - evt_tree.unpEmtf_Phi_fp[i]) == 3600:
+	  flag=1
 
-	#If the track isn't a duplicate, save its properties.
-	if flag==0 and evt_tree.unpEmtf_Mode[i]>12:
-	    unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
-	    unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
-	    unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
-	    unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i]*np.pi/180.)
+      #If the track isn't a duplicate, save its properties.
+      if flag==0 and evt_tree.unpEmtf_Mode[i]>12:
+	  unpEmtf_Pt.append(evt_tree.unpEmtf_Pt[i])
+	  unpEmtf_Eta.append(evt_tree.unpEmtf_Eta[i])
+	  unpEmtf_Phi_fp.append(evt_tree.unpEmtf_Phi_fp[i])
+	  unpEmtf_Phi_glob.append(evt_tree.unpEmtf_Phi_glob[i]*np.pi/180.)
 
   ## ================================================
   ## ================================================
@@ -276,7 +245,7 @@ for iEvt in range(evt_tree.GetEntries()):
 
   #Match a reco muon to a L1 muon.
   #For SM dataset, use unpacked emtf track as L1 Muon.
-  if dataset==1 and len(unpEmtf_Eta)>1:
+  if len(unpEmtf_Eta)>1:
     for i in range(len(unpEmtf_Eta)):
       temp1.append(h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
       temp2.append(h.CalcDR(reco_eta_prop[1], reco_phi_prop[1], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]))
@@ -289,18 +258,6 @@ for iEvt in range(evt_tree.GetEntries()):
     if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2)[0]: best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
     if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2)[0]: best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
     if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0] 
-
-
-  #The MC doesn't have unpacked tracks, so use regional muon cands instead for L1 muons.
-  if dataset==2 and len(emtf_eta)>1:
-    for i in range(len(emtf_eta)):
-      temp1.append(h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], emtf_eta[i], emtf_phi[i]))
-      temp2.append(h.CalcDR(reco_eta_prop[1], reco_phi_prop[1], emtf_eta[i], emtf_phi[i]))
-
-    dR1 = set(temp1) ; dR2 = set(temp2)
-    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] < sorted(dR2)[0]: best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[1] 
-    if np.argmin(temp1) == np.argmin(temp2) and sorted(dR1)[0] > sorted(dR2)[0]: best1 = sorted(dR1)[1] ; best2 = sorted(dR2)[0]
-    if np.argmin(temp1) != np.argmin(temp2): best1 = sorted(dR1)[0] ; best2 = sorted(dR2)[0]
 
   ## ================================================
   ## ================================================
@@ -346,18 +303,16 @@ for iEvt in range(evt_tree.GetEntries()):
   dEta = reco_eta_prop[0] - reco_eta_prop[1]
   dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
 
-  if printouts == True and dEta < 0.15 and dPhi < 0.15:
+  if printouts == True and dEta < 0.05 and dPhi < 0.05:
     print 'reco muon properties (pT, eta, phi (propagated)):'
     print 'reco muon 1:', reco_pT[0], reco_eta_prop[0], reco_phi_prop[0]
     print 'reco muon 2:', reco_pT[1], reco_eta_prop[1], reco_phi_prop[1]
     print 'L1 muon properties (pT, eta, phi):'
 
-    if dataset==1:
-      for i in range(len(unpEmtf_Eta)):
-	print 'L1 muon', i+1, ':',  unpEmtf_Pt[i], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]
-    else:
-      for i in range(len(emtf_eta)):
-	print 'L1 muon', i+1, ':',  emtf_pT[i], emtf_eta[i], emtf_phi[i]
+
+    for i in range(len(unpEmtf_Eta)):
+      print 'L1 muon', i+1, ':',  unpEmtf_Pt[i], unpEmtf_Eta[i], unpEmtf_Phi_glob[i]
+
     print '---------------'
     ## ================================================
     ## ================================================
@@ -367,7 +322,7 @@ for iEvt in range(evt_tree.GetEntries()):
   #####################################################
 
   prefilter_count+=1   #No selections applied (only filter)
-  if evt_tree.reco_isMediumMuon[0] != 1 or evt_tree.reco_isMediumMuon[1] != 1: continue
+  if recoismed[0] != 1 or recoismed[1] != 1: continue
   medium_count+=1    #Events that pass medium selection.
 
   dEta = reco_eta_prop[0] - reco_eta_prop[1]
@@ -379,6 +334,7 @@ for iEvt in range(evt_tree.GetEntries()):
   h_dPhi_denom.Fill(dPhi)
   h_dR_denom.Fill(dR)
 
+
   if dR <= 0.30 and dR > 0.20: denom_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: denom_dR_2010+=1
   if dR <= 0.10 and dR > 0.08: denom_dR_1008+=1
@@ -386,13 +342,11 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.06 and dR > 0.04: denom_dR_0604+=1
   if dR <= 0.04 and dR > 0.02: denom_dR_0402+=1
   if dR <= 0.02: denom_dR_0200+=1
+  
 
-  if dataset==1: 
-    if len(unpEmtf_Eta)<2: continue
-    if best1>0.2 or best2>0.2: continue
-  if dataset==2: 
-    if len(emtf_phi)<2: continue
-    if best1>0.2 or best2>0.2: continue
+  if len(unpEmtf_Eta)<2: continue
+  if best1>0.2 or best2>0.2: continue
+
 
   EMTFmatch_count+=1
 
@@ -408,6 +362,7 @@ for iEvt in range(evt_tree.GetEntries()):
   if dR <= 0.06 and dR > 0.04: numer_dR_0604+=1
   if dR <= 0.04 and dR > 0.02: numer_dR_0402+=1
   if dR <= 0.02: numer_dR_0200+=1
+
   ## ================================================
   ## ================================================
 
@@ -428,7 +383,7 @@ print '0.08 > dR > 0.06: ', numer_dR_0806/denom_dR_0806
 print '0.06 > dR > 0.04: ', numer_dR_0604/denom_dR_0604
 print '0.04 > dR > 0.02: ', numer_dR_0402/denom_dR_0402
 print '0.02 > dR: ', numer_dR_0200/denom_dR_0200
-print '-------------'
+
 
 ############################################################
 ### Write output file with histograms and efficiencies ###
@@ -444,8 +399,8 @@ if plot_efficiency == True:
   graph = eff.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c57.SaveAs("tests2/eff_dEta.png")
-  else: c57.SaveAs("tests2/eff_dEta_MC.png")
+  if dataset==1: c57.SaveAs("eff_dEta.png")
+  else: c57.SaveAs("eff_dEta_MC.png")
   c57.Close()
 
   c58 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
@@ -458,8 +413,8 @@ if plot_efficiency == True:
   graph = eff2.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c58.SaveAs("tests2/eff_dPhi.png")
-  else: c58.SaveAs("tests2/eff_dPhi_MC.png")
+  if dataset==1: c58.SaveAs("eff_dPhi.png")
+  else: c58.SaveAs("eff_dPhi_MC.png")
   c58.Close()
 
   c59 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
@@ -472,8 +427,8 @@ if plot_efficiency == True:
   graph = eff3.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c59.SaveAs("tests2/eff_dR.png")
-  else: c59.SaveAs("tests2/eff_dR_MC.png")
+  if dataset==1: c59.SaveAs("eff_dR.png")
+  else: c59.SaveAs("eff_dR_MC.png")
   c59.Close()
 
 ################
