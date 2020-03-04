@@ -20,6 +20,7 @@ plot_efficiency = True
 ## ================ Event branches ======================
 evt_tree  = TChain('SimpleMuonAnalyzer/Events')
 
+out_file  = TFile('Histograms.root','recreate')
 
 ## ================ Read input files ======================
 dataset = int(input("Run over: (Data:1, Monte Carlo:2):"))
@@ -42,10 +43,10 @@ if dataset == 1:
 
 if dataset == 2:
   dir1 = '/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_6_0/src/MSSMD_Ntuples/'
-  nFiles = int(input("How many input MC files? (Min:1, Max: 5):"))
+  nFiles = int(input("How many input MC files? (Min:1, Max:11):"))
 
-  if nFiles>5 or nFiles<1: 
-    print "Choose a number of input MC files between 1 than 5."
+  if nFiles>11 or nFiles<1: 
+    print "Choose a number of input MC files between 1 than 11."
     sys.exit()
 
   i=1
@@ -68,6 +69,7 @@ print 'Some files will give an error message if they failed processing.'
 eta_bins = [256, -2.8, 2.8]
 phi_bins = [256, -np.pi, np.pi]
 reco_dEta = [] ; reco_dPhi = []
+reco_dEta_prop = [] ; reco_dPhi_prop = []
 
 h_nEmtf = TH1D('h_nEmtf', '', 8, 0, 8)
 h_nReco = TH1D('h_nReco', '', 8, 0, 8)
@@ -103,6 +105,17 @@ h_dR_denom   = TH1D('h_dR_denom', '', 64, 0, 0.3)
 h_dEta_numer = TH1D('h_dEta_numer', '', 64, -0.3, 0.3)
 h_dPhi_numer = TH1D('h_dPhi_numer', '', 64, -0.3, 0.3)
 h_dR_numer   = TH1D('h_dR_numer', '', 64, 0, 0.3)
+
+h_dEta2_denom = TH1D('h_dEta2_denom', '', 64, -0.3, 0.3)
+h_dPhi2_denom = TH1D('h_dPhi2_denom', '', 64, -0.3, 0.3)
+h_dR2_denom   = TH1D('h_dR2_denom', '', 64, 0, 0.3)
+h_dEta2_numer = TH1D('h_dEta2_numer', '', 64, -0.3, 0.3)
+h_dPhi2_numer = TH1D('h_dPhi2_numer', '', 64, -0.3, 0.3)
+h_dR2_numer   = TH1D('h_dR2_numer', '', 64, 0, 0.3)
+
+
+h_phivertex_phiprop = TH1D('h_phivertex_phiprop', '', phi_bins[0], -0.2, 0.2)
+
 
 #Counters to keep track of the number of events after each selection.
 prefilter_count  = 0
@@ -277,31 +290,33 @@ for iEvt in range(evt_tree.GetEntries()):
       h_reco_eta.Fill(reco_eta[i])
       h_reco_phi.Fill(reco_phi[i])
 
-    #Regional muon candidate kinematics.
-    for j in range(len(emtf_pT)):
-      h_emtf_pt.Fill(emtf_pT[j])
-      h_emtf_eta.Fill(emtf_eta[j])
-      h_emtf_phi.Fill(emtf_phi[j])
+  for i in range(len(unpEmtf_Pt)):
+    h_emtf_pt.Fill(unpEmtf_Pt[i])
+    h_emtf_eta.Fill(unpEmtf_Eta[i])
+    h_emtf_phi.Fill(unpEmtf_Phi_glob[i])
 
-      if j==0: 
-	h_emtf1_pt.Fill(emtf_pT[j])
-	h_emtf1_eta.Fill(emtf_eta[j])
-	h_emtf1_phi.Fill(emtf_phi[j])
-      if j==1:
-	h_emtf2_pt.Fill(emtf_pT[j])
-	h_emtf2_eta.Fill(emtf_eta[j])
-	h_emtf2_phi.Fill(emtf_phi[j])
+  if len(unpEmtf_Pt)>0:
+    h_emtf1_pt.Fill(unpEmtf_Pt[0])
+    h_emtf1_eta.Fill(unpEmtf_Eta[0])
+    h_emtf1_phi.Fill(unpEmtf_Phi_glob[0])
 
-  reco_dEta.append(reco_eta_prop[0] - reco_eta_prop[1])
-  reco_dPhi.append(reco_phi_prop[0] - reco_phi_prop[1])
+  if len(unpEmtf_Pt)>1:
+    h_emtf2_pt.Fill(unpEmtf_Pt[1])
+    h_emtf2_eta.Fill(unpEmtf_Eta[1])
+    h_emtf2_phi.Fill(unpEmtf_Phi_glob[1])
+
+  h_phivertex_phiprop.Fill(reco_phi[0] - reco_phi_prop[0])
+  h_phivertex_phiprop.Fill(reco_phi[1] - reco_phi_prop[1])
+  #reco_dEta.append(reco_eta[0] - reco_eta[1])
+  #reco_dPhi.append(reco_phi[0] - reco_phi[1])
+  #reco_dEta_prop.append(reco_eta_prop[0] - reco_eta_prop[1])
+  #reco_dPhi_prop.append(reco_phi_prop[0] - reco_phi_prop[1])
   ## ================================================
   ## ================================================
 
   #####################################################
   ##### Some useful printouts.
   #####################################################
-  dEta = reco_eta_prop[0] - reco_eta_prop[1]
-  dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
 
   if printouts == True and dEta < 0.05 and dPhi < 0.05:
     print 'reco muon properties (pT, eta, phi (propagated)):'
@@ -329,10 +344,18 @@ for iEvt in range(evt_tree.GetEntries()):
   dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
   dR = h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
 
+  dEta2 = reco_eta[0] - reco_eta[1]
+  dPhi2 = h.CalcDPhi(reco_phi[0],reco_phi[1])
+  dR2 = h.CalcDR(reco_eta[0], reco_phi[0], reco_eta[1], reco_phi[1])
+
   #Denominator histogram.
   h_dEta_denom.Fill(dEta)
   h_dPhi_denom.Fill(dPhi)
   h_dR_denom.Fill(dR)
+
+  h_dEta2_denom.Fill(dEta2)
+  h_dPhi2_denom.Fill(dPhi2)
+  h_dR2_denom.Fill(dR2)
 
 
   if dR <= 0.30 and dR > 0.20: denom_dR_3020+=1
@@ -347,6 +370,11 @@ for iEvt in range(evt_tree.GetEntries()):
   if len(unpEmtf_Eta)<2: continue
   if best1>0.2 or best2>0.2: continue
 
+  reco_dEta.append(reco_eta[0] - reco_eta[1])
+  reco_dPhi.append(reco_phi[0] - reco_phi[1])
+  reco_dEta_prop.append(reco_eta_prop[0] - reco_eta_prop[1])
+  reco_dPhi_prop.append(reco_phi_prop[0] - reco_phi_prop[1])
+
 
   EMTFmatch_count+=1
 
@@ -354,6 +382,10 @@ for iEvt in range(evt_tree.GetEntries()):
   h_dEta_numer.Fill(dEta)
   h_dPhi_numer.Fill(dPhi)
   h_dR_numer.Fill(dR)
+
+  h_dEta2_numer.Fill(dEta2)
+  h_dPhi2_numer.Fill(dPhi2)
+  h_dR2_numer.Fill(dR2)
 
   if dR <= 0.30 and dR > 0.20: numer_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: numer_dR_2010+=1
@@ -376,18 +408,19 @@ print 'both reco muons are medium ID:', medium_count
 print 'both muons are EMTF matched:', EMTFmatch_count
 print '-------------'
 print 'Averaged efficiency binned:'
-print '0.30 > dR > 0.20: ', numer_dR_3020/denom_dR_3020
-print '0.20 > dR > 0.10: ', numer_dR_2010/denom_dR_2010
-print '0.10 > dR > 0.08: ', numer_dR_1008/denom_dR_1008
-print '0.08 > dR > 0.06: ', numer_dR_0806/denom_dR_0806
-print '0.06 > dR > 0.04: ', numer_dR_0604/denom_dR_0604
-print '0.04 > dR > 0.02: ', numer_dR_0402/denom_dR_0402
-print '0.02 > dR: ', numer_dR_0200/denom_dR_0200
+#print '0.30 > dR > 0.20: ', numer_dR_3020/denom_dR_3020
+#print '0.20 > dR > 0.10: ', numer_dR_2010/denom_dR_2010
+#print '0.10 > dR > 0.08: ', numer_dR_1008/denom_dR_1008
+#print '0.08 > dR > 0.06: ', numer_dR_0806/denom_dR_0806
+#print '0.06 > dR > 0.04: ', numer_dR_0604/denom_dR_0604
+#print '0.04 > dR > 0.02: ', numer_dR_0402/denom_dR_0402
+#print '0.02 > dR: ', numer_dR_0200/denom_dR_0200
 
 
 ############################################################
 ### Write output file with histograms and efficiencies ###
 ############################################################
+
 if plot_efficiency == True:
   c57 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c57.SetGrid()
@@ -399,8 +432,8 @@ if plot_efficiency == True:
   graph = eff.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c57.SaveAs("eff_dEta.png")
-  else: c57.SaveAs("eff_dEta_MC.png")
+  if dataset==1: c57.SaveAs("tests2/eff_dEta.png")
+  else: c57.SaveAs("tests2/eff_dEta_MC.png")
   c57.Close()
 
   c58 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
@@ -413,8 +446,8 @@ if plot_efficiency == True:
   graph = eff2.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c58.SaveAs("eff_dPhi.png")
-  else: c58.SaveAs("eff_dPhi_MC.png")
+  if dataset==1: c58.SaveAs("tests2/eff_dPhi.png")
+  else: c58.SaveAs("tests2/eff_dPhi_MC.png")
   c58.Close()
 
   c59 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
@@ -427,308 +460,130 @@ if plot_efficiency == True:
   graph = eff3.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
-  if dataset==1: c59.SaveAs("eff_dR.png")
-  else: c59.SaveAs("eff_dR_MC.png")
+  if dataset==1: c59.SaveAs("tests2/eff_dR.png")
+  else: c59.SaveAs("tests2/eff_dR_MC.png")
   c59.Close()
 
 ################
 ################
 ################
+out_file.cd()
 
 if plot_kinematics == True:
-  temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
-  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
-  EtaPhiScatter.Draw("A*")
-  EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
-  EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
-  gPad.Update()
-  if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
-  if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
-  c37.Close()
+  print 'Kinematic plots written to Histograms.root'
 
-  c1 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco_pt.SetMinimum(1)
-  h_reco_pt.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco_pt.SetTitle('All offline reco muon pT')
-  if dataset==2: h_reco_pt.SetTitle('All offline reco muon pT (MC)')
-  h_reco_pt.GetXaxis().SetTitle('pT (GeV)')
-  h_reco_pt.Write()
-  if dataset==1: c1.SaveAs("trees/reco_pT.png")
-  if dataset==2: c1.SaveAs("trees/reco_pT_MC.png")
-  c1.Close()
+  if dataset==1:
+    h_reco_pt.SetTitle('All reco muon pT')
+    h_reco_eta.SetTitle('All reco muon #eta (propagated)')
+    h_reco_phi.SetTitle('All reco muon #phi (propagated)')
+    h_reco1_pt.SetTitle('First reco muon pT')
+    h_reco1_eta.SetTitle('First reco muon #eta (propagated)')
+    h_reco1_phi.SetTitle('First reco muon #phi (propagated)')
+    h_reco2_pt.SetTitle('Second reco muon pT')
+    h_reco2_eta.SetTitle('Second reco muon #eta (propagated)')
+    h_reco2_phi.SetTitle('Second reco muon #phi (propagated)')
+    h_emtf_pt.SetTitle('All L1 muon pT')
+    h_emtf_eta.SetTitle('All L1 muon #eta')
+    h_emtf_phi.SetTitle('All L1 muon #phi')
+    h_emtf1_pt.SetTitle('First L1 muon pT')
+    h_emtf1_eta.SetTitle('First L1 muon #eta')
+    h_emtf1_phi.SetTitle('First L1 muon #phi')
+    h_emtf2_pt.SetTitle('Second L1 muon pT')
+    h_emtf2_eta.SetTitle('Second L1 muon #eta')
+    h_emtf2_phi.SetTitle('Second L1 muon #phi')
+    h_nReco.SetTitle('Number of reco muons per event')
+    h_nEmtf.SetTitle('Number of L1 muons per event')
 
-  c2 = TCanvas( 'c2', '', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco1_pt.SetMinimum(1)
-  h_reco1_pt.Draw()
-  gStyle.SetOptStat(0)
-  h_reco1_pt.GetXaxis().SetTitle('pT (GeV)')
-  if dataset==1: h_reco1_pt.SetTitle('First offline reco muon pT')
-  if dataset==2: h_reco1_pt.SetTitle('First offline reco muon pT (MC)')
-  h_reco1_pt.Write()
-  if dataset==1: c2.SaveAs("trees/reco1_pT.png")
-  if dataset==2: c2.SaveAs("trees/reco1_pT_MC.png")
-  c2.Close()
+  if dataset==2:
+    h_reco_pt.SetTitle('All offline reco muon pT (MC)')
+    h_reco_eta.SetTitle('All offline reco muon #eta (propagated) (MC)')
+    h_reco_phi.SetTitle('All offline reco muon #phi (propagated) (MC)')
+    h_reco1_pt.SetTitle('First offline reco muon pT (MC)')
+    h_reco1_eta.SetTitle('First offline reco muon #eta (propagated) (MC)')
+    h_reco1_phi.SetTitle('First offline reco muon #phi (propagated) (MC)')
+    h_reco2_pt.SetTitle('Second offline reco muon pT (MC)')
+    h_reco2_eta.SetTitle('Second offline reco muon #eta (propagated) (MC)')
+    h_reco2_phi.SetTitle('Second offline reco muon #phi (propagated) (MC)')
+    h_emtf_pt.SetTitle('All L1 muon pT (MC)')
+    h_emtf_eta.SetTitle('All L1 muon #eta (MC)')
+    h_emtf_phi.SetTitle('All L1 muon #phi (MC)')
+    h_emtf1_pt.SetTitle('First L1 muon pT (MC)')
+    h_emtf1_eta.SetTitle('First L1 muon #eta (MC)')
+    h_emtf1_phi.SetTitle('First L1 muon #phi (MC)')
+    h_emtf2_pt.SetTitle('Second L1 muon pT (MC)')
+    h_emtf2_eta.SetTitle('Second L1 muon #eta (MC)')
+    h_emtf2_phi.SetTitle('Second L1 muon #phi (MC)')
+    h_nReco.SetTitle('Number of reco muons per event (MC)')
+    h_nEmtf.SetTitle('Number of L1 muons per event (MC)')
+    
+  h_reco_pt.GetXaxis().SetTitle('pT (GeV)') ; h_reco1_pt.GetXaxis().SetTitle('pT (GeV)') ; h_reco2_pt.GetXaxis().SetTitle('pT (GeV)')
+  h_reco_eta.GetXaxis().SetTitle('#eta') ; h_reco1_eta.GetXaxis().SetTitle('#eta') ; h_reco2_eta.GetXaxis().SetTitle('#eta')
+  h_reco_phi.GetXaxis().SetTitle('#phi') ;   h_reco1_phi.GetXaxis().SetTitle('#phi') ;   h_reco2_phi.GetXaxis().SetTitle('#phi')
+  h_emtf_pt.GetXaxis().SetTitle('pT (GeV)') ; h_emtf1_pt.GetXaxis().SetTitle('pT (GeV)') ; h_emtf2_pt.GetXaxis().SetTitle('pT (GeV)')
+  h_emtf_eta.GetXaxis().SetTitle('#eta') ; h_emtf1_eta.GetXaxis().SetTitle('#eta') ; h_emtf2_eta.GetXaxis().SetTitle('#eta')
+  h_emtf_phi.GetXaxis().SetTitle('#phi') ; h_emtf1_phi.GetXaxis().SetTitle('#phi') ; h_emtf2_phi.GetXaxis().SetTitle('#phi')
+  h_nReco.GetXaxis().SetTitle('Offline Muons') ; h_nEmtf.GetXaxis().SetTitle('EMTF Tracks')
 
-  c3 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco2_pt.SetMinimum(1)
-  h_reco2_pt.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco2_pt.SetTitle('Second offline reco muon pT')
-  if dataset==2: h_reco2_pt.SetTitle('Second offline reco muon pT (MC)')
-  h_reco2_pt.GetXaxis().SetTitle('pT (GeV)')
-  h_reco2_pt.Write()
-  if dataset==1: c3.SaveAs("trees/reco2_pT.png")
-  if dataset==2: c3.SaveAs("trees/reco2_pT_MC.png")
-  c3.Close()
+  h_reco_pt.Write() ; h_reco1_pt.Write() ; h_reco2_pt.Write()
+  h_reco_eta.Write() ; h_reco1_eta.Write() ; h_reco2_eta.Write()
+  h_reco_phi.Write() ; h_reco1_phi.Write() ; h_reco2_phi.Write()
+  h_emtf_pt.Write() ; h_emtf1_pt.Write() ; h_emtf2_pt.Write()
+  h_emtf_eta.Write() ; h_emtf1_eta.Write() ; h_emtf2_eta.Write()
+  h_emtf_phi.Write() ; h_emtf1_phi.Write() ; h_emtf2_phi.Write()
+  h_nReco.Write() ; h_nEmtf.Write()
 
-  c4 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco_eta.SetMinimum(1)
-  h_reco_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco_eta.SetTitle('All offline reco muon #eta (propagated)')
-  if dataset==2: h_reco_eta.SetTitle('All offline reco muon #eta (propagated) (MC)')
-  h_reco_eta.GetXaxis().SetTitle('#eta')
-  h_reco_eta.Write()
-  if dataset==1: c4.SaveAs("trees/reco_eta.png")
-  if dataset==2: c4.SaveAs("trees/reco_eta_MC.png")
-  c4.Close()
+  #temp1 = np.array(reco_dEta_prop) ; temp2 = np.array(reco_dPhi_prop)
+  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #EtaPhiScatter = TGraph(len(reco_dEta_prop), temp1, temp2)
+  #EtaPhiScatter.Draw("A*")
+  #EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
+  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta')
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #phi')
+  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated)')
+  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated) (MC)')
+  #gPad.Update()
+  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_prop_Scatter.png")
+  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_prop_Scatter_MC.png")
+  #c37.Close()
 
-  c5 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco1_eta.SetMinimum(1)
-  h_reco1_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco1_eta.SetTitle('First offline reco muon #eta (propagated)')
-  if dataset==2: h_reco1_eta.SetTitle('First offline reco muon #eta (propagated) (MC)')
-  h_reco1_eta.GetXaxis().SetTitle('#eta')
-  h_reco1_eta.Write()
-  if dataset==1: c5.SaveAs("trees/reco1_eta.png")
-  if dataset==2: c5.SaveAs("trees/reco1_eta_MC.png")
-  c5.Close()
+  #temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
+  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
+  #EtaPhiScatter.Draw("A*")
+  #EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
+  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta')
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #phi')
+  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex)')
+  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex) (MC)')
+  #gPad.Update()
+  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
+  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
+  #c37.Close()
 
-  c5 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco2_eta.SetMinimum(1)
-  h_reco2_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco2_eta.SetTitle('Second offline reco muon #eta (propagated)')
-  if dataset==2: h_reco2_eta.SetTitle('Second offline reco muon #eta (propagated) (MC)')
-  h_reco2_eta.GetXaxis().SetTitle('#eta')
-  h_reco2_eta.Write()
-  if dataset==1: c5.SaveAs("trees/reco2_eta.png")
-  if dataset==2: c5.SaveAs("trees/reco2_eta_MC.png")
-  c5.Close()
+  #c35 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #gPad.SetLogy()
+  #h_dEta.SetMinimum(1)
+  #h_dEta.Draw()
+  #gStyle.SetOptStat(0)
+  #if dataset==1: h_dEta.SetTitle('Difference between reco muon #eta (propagated)')
+  #if dataset==2: h_dEta.SetTitle('Difference between reco muon #eta (at vertex) (MC)')
+  #h_dEta.GetXaxis().SetTitle('#Delta #eta')
+  #h_dEta.Write()
+  #if dataset==1: c35.SaveAs("trees/dEta.png")
+  #if dataset==2: c35.SaveAs("trees/dEta_MC.png")
+  #c35.Close()
 
-  c6 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco_phi.SetMinimum(1)
-  h_reco_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco_phi.SetTitle('All offline reco muon #phi (propagated)')
-  if dataset==2: h_reco_phi.SetTitle('All offline reco muon #phi (propagated) (MC)')
-  h_reco_phi.GetXaxis().SetTitle('#phi')
-  h_reco_phi.Write()
-  if dataset==1: c6.SaveAs("trees/reco_phi.png")
-  if dataset==2: c6.SaveAs("trees/reco_phi_MC.png")
-  c6.Close()
-
-  c7 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco1_phi.SetMinimum(1)
-  h_reco1_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco1_phi.SetTitle('First offline reco muon #phi (propagated)')
-  if dataset==2: h_reco1_phi.SetTitle('First offline reco muon #phi (propagated) (MC)')
-  h_reco1_phi.GetXaxis().SetTitle('#phi')
-  h_reco1_phi.Write()
-  if dataset==1: c7.SaveAs("trees/reco1_phi.png")
-  if dataset==2: c7.SaveAs("trees/reco1_phi_MC.png")
-  c7.Close()
-
-  c8 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_reco2_phi.SetMinimum(1)
-  h_reco2_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_reco2_phi.SetTitle('Second offline reco muon #phi (propagated)')
-  if dataset==2: h_reco2_phi.SetTitle('Second offline reco muon #phi (propagated) (MC)')
-  h_reco2_phi.GetXaxis().SetTitle('#phi')
-  h_reco2_phi.Write()
-  if dataset==1: c8.SaveAs("trees/reco2_phi.png")
-  if dataset==2: c8.SaveAs("trees/reco2_phi_MC.png")
-  c8.Close()
-
-  c12 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf_pt.SetMinimum(1)
-  h_emtf_pt.Draw()
-  gStyle.SetOptStat(0)
-  h_emtf_pt.SetTitle('All EMTF Tracks pT')
-  if dataset==1: h_emtf_pt.GetXaxis().SetTitle('pT (GeV)')
-  if dataset==2: h_emtf_pt.GetXaxis().SetTitle('pT (GeV) (MC)')
-  h_emtf_pt.Write()
-  if dataset==1: c12.SaveAs("trees/emtf_pT.png")
-  if dataset==2: c12.SaveAs("trees/emtf_pT_MC.png")
-  c12.Close()
-
-  c13 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf1_pt.SetMinimum(1)
-  h_emtf1_pt.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf1_pt.SetTitle('First Emtf track pT')
-  if dataset==2: h_emtf1_pt.SetTitle('First Emtf track pT (MC)')
-  h_emtf1_pt.GetXaxis().SetTitle('pT (GeV)')
-  h_emtf1_pt.Write()
-  if dataset==1: c13.SaveAs("trees/emtf1_pT.png")
-  if dataset==2: c13.SaveAs("trees/emtf1_pT_MC.png")
-  c13.Close()
-
-  c14 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf2_pt.SetMinimum(1)
-  h_emtf2_pt.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf2_pt.SetTitle('Second Emtf track pT')
-  if dataset==2: h_emtf2_pt.SetTitle('Second Emtf track pT (MC)')
-  h_emtf2_pt.GetXaxis().SetTitle('pT (GeV)')
-  h_emtf2_pt.Write()
-  if dataset==1: c14.SaveAs("trees/emtf2_pT.png")
-  if dataset==2: c14.SaveAs("trees/emtf2_pT_MC.png")
-  c14.Close()
-
-  c16 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf_eta.SetMinimum(1)
-  h_emtf_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf_eta.SetTitle('All EMTF tracks #eta')
-  if dataset==2: h_emtf_eta.SetTitle('All EMTF tracks #eta (MC)')
-  h_emtf_eta.GetXaxis().SetTitle('#eta')
-  h_emtf_eta.Write()
-  if dataset==1: c16.SaveAs("trees/emtf_eta.png")
-  if dataset==2: c16.SaveAs("trees/emtf_eta_MC.png")
-  c16.Close()
-
-  c17 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf1_eta.SetMinimum(1)
-  h_emtf1_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf1_eta.SetTitle('First Emtf track #eta')
-  if dataset==2: h_emtf1_eta.SetTitle('First Emtf track #eta (MC)')
-  h_emtf1_eta.GetXaxis().SetTitle('#eta')
-  h_emtf1_eta.Write()
-  if dataset==1: c17.SaveAs("trees/emtf1_eta.png")
-  if dataset==2: c17.SaveAs("trees/emtf1_eta_MC.png")
-  c17.Close()
-
-  c18 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf2_eta.SetMinimum(1)
-  h_emtf2_eta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf2_eta.SetTitle('Second Emtf track #eta')
-  if dataset==2: h_emtf2_eta.SetTitle('Second Emtf track #eta (MC)')
-  h_emtf2_eta.GetXaxis().SetTitle('#eta')
-  h_emtf2_eta.Write()
-  if dataset==1: c18.SaveAs("trees/emtf2_eta.png")
-  if dataset==2: c18.SaveAs("trees/emtf2_eta_MC.png")
-  c18.Close()
-
-  c20 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf_phi.SetMinimum(1)
-  h_emtf_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf_phi.SetTitle('All EMTF tracks #phi')
-  if dataset==2: h_emtf_phi.SetTitle('All EMTF tracks #phi (MC)')
-  h_emtf_phi.GetXaxis().SetTitle('#phi')
-  h_emtf_phi.Write()
-  if dataset==1: c20.SaveAs("trees/emtf_phi.png")
-  if dataset==2: c20.SaveAs("trees/emtf_phi_MC.png")
-  c20.Close()
-
-  c21 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf1_phi.SetMinimum(1)
-  h_emtf1_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf1_phi.SetTitle('First emtf track #phi')
-  if dataset==2: h_emtf1_phi.SetTitle('First emtf track #phi (MC)')
-  h_emtf1_phi.GetXaxis().SetTitle('#phi')
-  h_emtf1_phi.Write()
-  if dataset==1: c21.SaveAs("trees/emtf1_phi.png")
-  if dataset==2: c21.SaveAs("trees/emtf1_phi_MC.png")
-  c21.Close()
-
-  c22 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_emtf2_phi.SetMinimum(1)
-  h_emtf2_phi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_emtf2_phi.SetTitle('Second emtf track #phi')
-  if dataset==2: h_emtf2_phi.SetTitle('Second emtf track #phi (MC)')
-  h_emtf2_phi.GetXaxis().SetTitle('#phi')
-  h_emtf2_phi.Write()
-  if dataset==1: c22.SaveAs("trees/emtf2_phi.png")
-  if dataset==2: c22.SaveAs("trees/emtf2_phi_MC.png")
-  c22.Close()
-
-  c33 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_nReco.SetMinimum(1)
-  h_nReco.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event')
-  if dataset==2: h_nReco.SetTitle('Number of Offline Reconstructed Muons per event (MC)')
-  h_nReco.GetXaxis().SetTitle('Offline Muons')
-  h_nReco.Write()
-  if dataset==1: c33.SaveAs("trees/nReco.png")
-  if dataset==2: c33.SaveAs("trees/nReco_MC.png")
-  c33.Close()
-
-  c34 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_nEmtf.SetMinimum(1)
-  h_nEmtf.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_nEmtf.SetTitle('Number of EMTF tracks per event')
-  if dataset==2: h_nEmtf.SetTitle('Number of EMTF tracks per event (MC)')
-  h_nEmtf.GetXaxis().SetTitle('EMTF Tracks')
-  h_nEmtf.Write()
-  if dataset==1: c34.SaveAs("trees/nEmtf.png")
-  if dataset==2: c34.SaveAs("trees/nEmtf_MC.png")
-  c34.Close()
-
-  c35 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_dEta.SetMinimum(1)
-  h_dEta.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_dEta.SetTitle('Difference between reco muon #eta (propagated)')
-  if dataset==2: h_dEta.SetTitle('Difference between reco muon #eta (at vertex) (MC)')
-  h_dEta.GetXaxis().SetTitle('#Delta #eta')
-  h_dEta.Write()
-  if dataset==1: c35.SaveAs("trees/dEta.png")
-  if dataset==2: c35.SaveAs("trees/dEta_MC.png")
-  c35.Close()
-
-  c36 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  gPad.SetLogy()
-  h_dPhi.SetMinimum(1)
-  h_dPhi.Draw()
-  gStyle.SetOptStat(0)
-  if dataset==1: h_dPhi.SetTitle('Difference between reco muon #phi (propagated)')
-  if dataset==2: h_dPhi.SetTitle('Difference between reco muon #phi (at vertex) (MC)')
-  h_dPhi.GetXaxis().SetTitle('#Delta #phi')
-  h_dPhi.Write()
-  if dataset==1: c36.SaveAs("trees/dPhi.png")
-  if dataset==2: c36.SaveAs("trees/dPhi_MC.png")
-  c36.Close()
+  #c36 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #gPad.SetLogy()
+  #h_dPhi.SetMinimum(1)
+  #h_dPhi.Draw()
+  #gStyle.SetOptStat(0)
+  #if dataset==1: h_dPhi.SetTitle('Difference between reco muon #phi (propagated)')
+  #if dataset==2: h_dPhi.SetTitle('Difference between reco muon #phi (at vertex) (MC)')
+  #h_dPhi.GetXaxis().SetTitle('#Delta #phi')
+  #h_dPhi.Write()
+  #if dataset==1: c36.SaveAs("trees/dPhi.png")
+  #if dataset==2: c36.SaveAs("trees/dPhi_MC.png")
+  #c36.Close()
