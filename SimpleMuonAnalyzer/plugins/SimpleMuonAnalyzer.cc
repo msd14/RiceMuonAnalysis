@@ -1,5 +1,6 @@
 // system include files
 #include <memory>
+#include <cmath>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -35,6 +36,8 @@
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/GeometrySurface/interface/Cylinder.h"
+
+//#define DataFormats_L1TMuon_EMTFTrack_h
 
 static const float AVERAGE_GEM_Z(568.6); // [cm]
 
@@ -74,9 +77,9 @@ private:
   /// general interface to propagation
   GlobalPoint propagateToR(const GlobalPoint &inner_point, const GlobalVector &inner_vector, float r, int charge) const;
 
-  edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
+  edm::EDGetTokenT<std::vector<l1t::EMTFTrack>> emtfUnpTrack_token;
 
   edm::ESHandle<MagneticField> magfield_;
   edm::ESHandle<Propagator> propagator_;
@@ -90,9 +93,9 @@ private:
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
   :
-  cscSegmentToken_(consumes<CSCSegmentCollection>(iConfig.getParameter<edm::InputTag>("cscSegments"))),
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
+  emtfUnpTrack_token(consumes<std::vector<l1t::EMTFTrack>>(iConfig.getParameter<edm::InputTag>("unpEmtf"))),
   verbose_(iConfig.getParameter<bool>("verbose"))
 {
   tree_ = ntuple_.book(tree_, "Events");
@@ -117,94 +120,100 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
-
-  ntuple_.run = iEvent.id().run();
-  ntuple_.lumi = iEvent.id().luminosityBlock();
-  ntuple_.event = iEvent.id().event();
-
-  ntuple_.nRecoMuon = recoMuons.size();
+  const auto& emtfUnpTracks = iEvent.get(emtfUnpTrack_token);
  
+  std::cout << recoMuons.size() << std::endl;
+
   // basic reco muon analysis
-  for(int i = 0; i < nMaxRecoMuons; i++) {
 
-    const auto& recoMuon = recoMuons.at(i);
+  if ((recoMuons.size() < 10) and (recoMuons.size() > 1)) {
 
-    // propagate the muon to the second muon endcap station
-    const auto& muon_point = GlobalPoint(recoMuon.vertex().x(), recoMuon.vertex().y(), recoMuon.vertex().z());;
-    const auto& muon_vector = GlobalVector(recoMuon.momentum().x(), recoMuon.momentum().y(), recoMuon.momentum().z());
+    ntuple_.run = iEvent.id().run();
+    ntuple_.lumi = iEvent.id().luminosityBlock();
+    ntuple_.event = iEvent.id().event();
 
-    // pick a Z position
-    const auto& zStation2( recoMuon.eta() > 0 ? AVERAGE_ME21_EVEN_Z : -AVERAGE_ME21_EVEN_Z );
+    ntuple_.nRecoMuon = recoMuons.size();
 
-    const GlobalPoint& prop_point(propagateToZ(muon_point, muon_vector,
+    //for(int i = 0; i < nMaxRecoMuons; i++) {
+    for (std::size_t i=0; i<recoMuons.size(); i++) {
+      const auto& recoMuon = recoMuons.at(i);
+
+      // propagate the muon to the second muon endcap station
+      const auto& muon_point = GlobalPoint(recoMuon.vertex().x(), recoMuon.vertex().y(), recoMuon.vertex().z());;
+      const auto& muon_vector = GlobalVector(recoMuon.momentum().x(), recoMuon.momentum().y(), recoMuon.momentum().z());
+
+      // pick a Z position
+      const auto& zStation2( recoMuon.eta() > 0 ? AVERAGE_ME21_EVEN_Z : -AVERAGE_ME21_EVEN_Z );
+
+      const GlobalPoint& prop_point(propagateToZ(muon_point, muon_vector,
                                                zStation2, recoMuon.charge()));
 
-    std::cout << "muon pt " << recoMuon.pt() << std::endl;
-    std::cout << "\tmuon eta " << recoMuon.eta() << " " << "muon phi " <<recoMuon.phi() << std::endl;
-    std::cout << "\tmuon prop eta " << prop_point.eta() << " " << "muon prop phi " <<prop_point.phi() << std::endl << std::endl;
-    /*
-    // ignore tracker muons
-    if (!recoMuon.isGlobalMuon() and !recoMuon.isStandAloneMuon())
-    continue;
+      //std::cout << "Muon point (x,y,z):" << muon_point << std::endl;
+      //std::cout << "zSt2:" << zStation2 << std::endl;
+      std::cout << "Prop point: " << prop_point << std::endl;
+      std::cout << "Total momentum: " << sqrt( pow(recoMuon.momentum().x(),2) + pow(recoMuon.momentum().y(),2) + pow(recoMuon.momentum().z(),2) ) << std::endl;
+      std::cout << "muon pt " << recoMuon.pt() << std::endl;
+      std::cout << "muon eta " << recoMuon.eta() << " " << "muon phi " <<recoMuon.phi() << std::endl;
+      std::cout << "muon prop eta " << prop_point.eta() << " " << "muon prop phi " <<prop_point.phi() << std::endl;
+      std::cout << "-----------------" << std::endl;
 
-    const auto& muonTrack = recoMuon.isGlobalMuon() ? recoMuon.globalTrack() : recoMuon.outerTrack();
-
-    const auto& trackrechits = muonTrack->recHits();
-
-    for (const auto& r : trackrechits){
-    std::cout << "rechit " << r->type() << endl;
-    }
-    */
-
-    // fill basic muon quantities
-    ntuple_.reco_pt[i] = recoMuon.pt();
-    ntuple_.reco_eta[i] = recoMuon.eta();
-    ntuple_.reco_phi[i] = recoMuon.phi();
-    ntuple_.reco_eta_prop[i] = prop_point.eta();
-    ntuple_.reco_phi_prop[i] = prop_point.phi();
-    ntuple_.reco_charge[i] = recoMuon.charge();
+      // fill basic muon quantities
+      ntuple_.reco_pt[i] = recoMuon.pt();
+      ntuple_.reco_eta[i] = recoMuon.eta();
+      ntuple_.reco_phi[i] = recoMuon.phi();
+      ntuple_.reco_eta_prop[i] = prop_point.eta();
+      ntuple_.reco_phi_prop[i] = prop_point.phi();
+      ntuple_.reco_charge[i] = recoMuon.charge();
    
-    // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
-    ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
+      // https://twiki.cern.ch/twiki/bin/viewauth/CMS/SWGuideMuonIdRun2#Medium_Muon
+      ntuple_.reco_isMediumMuon[i] = int(muon::isMediumMuon(recoMuon));
     
-    ntuple_.reco_hasEMTFMatch[i] = 0;
-  }
+      ntuple_.reco_hasEMTFMatch[i] = 0;
+    }
 
-  // basic l1 muon analysis
-  
-  int count = 0;
+    // basic l1 muon analysis
+    for (std::size_t i=0; i<emtfUnpTracks.size(); i++) { 
+      ntuple_.unpEmtf_Pt[i] = emtfUnpTracks.at(i).Pt();
+      ntuple_.unpEmtf_Eta[i] = emtfUnpTracks.at(i).Eta();
+      ntuple_.unpEmtf_Theta[i] = emtfUnpTracks.at(i).Theta();
+      ntuple_.unpEmtf_Phi_glob[i] = emtfUnpTracks.at(i).Phi_glob();
+      ntuple_.unpEmtf_Theta_fp[i] = emtfUnpTracks.at(i).Theta_fp();
+      ntuple_.unpEmtf_Phi_fp[i] = emtfUnpTracks.at(i).Phi_fp();
+      ntuple_.unpEmtf_Mode[i] = emtfUnpTracks.at(i).Mode();
+      ntuple_.unpEmtf_Mode_neighbor[i] = emtfUnpTracks.at(i).Mode_neighbor();
+      ntuple_.unpEmtf_BX[i] = emtfUnpTracks.at(i).BX();
+    } 
 
-  int i = 0;
-  for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
+    int i = 0;
+    for (int bx = emtfTracks.getFirstBX(); bx <= emtfTracks.getLastBX(); bx++ ){
 
-    if ( bx != 0) continue;
+      if ( bx != 0) continue;
 
-    for (auto cand = emtfTracks.begin(bx); cand != emtfTracks.end(bx); ++cand ){
+      for (auto cand = emtfTracks.begin(bx); cand != emtfTracks.end(bx); ++cand ){
 
-      const auto& emtfTrack = *cand;
+	const auto& emtfTrack = *cand;
 
-      // https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
-      ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
-      ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
-      int globalphi = l1t::MicroGMTConfiguration::calcGlobalPhi(emtfTrack.hwPhi(),
+	// https://github.com/cms-sw/cmssw/blob/master/DataFormats/L1TMuon/interface/RegionalMuonCand.h
+	ntuple_.emtf_pt[i] = emtfTrack.hwPt()*0.5;
+	ntuple_.emtf_eta[i] = emtfTrack.hwEta()*0.010875;
+	int globalphi = l1t::MicroGMTConfiguration::calcGlobalPhi(emtfTrack.hwPhi(),
                                                                 emtfTrack.trackFinderType(),
                                                                 emtfTrack.processor());
-      ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
-      ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
-      ntuple_.emtf_quality[i] = emtfTrack.hwQual();
-      
-      count+=1;
+	ntuple_.emtf_phi[i] = normalizedPhi(globalphi*2*M_PI/576);
+	ntuple_.emtf_charge[i] = 1-2*emtfTrack.hwSign();
+	ntuple_.emtf_quality[i] = emtfTrack.hwQual();
 
-      i++;
+	i++;
+      }
     }
-  }
   
-  ntuple_.nEmtf = i;
-  // match reco muons to emtf tracks
+    ntuple_.nEmtf = i;
+    // match reco muons to emtf tracks
  
 
-  // fill tree
-  tree_->Fill();
+    // fill tree
+    tree_->Fill();
+  }
 }
 
 GlobalPoint
@@ -217,7 +226,7 @@ SimpleMuonAnalyzer::propagateToZ(const GlobalPoint &inner_point,
 
   FreeTrajectoryState state_start(inner_point, inner_vec, charge, &*magfield_);
   std::cout <<"state_start  position "<< state_start.position()<<" momentum "<< state_start.momentum()<<" charge "<<state_start.charge() << std::endl;
-  if (state_start.hasError()) std::cout <<"state_start has error  "<< std::endl;
+  //if (state_start.hasError()) std::cout <<"state_start has error  "<< std::endl;
 
   TrajectoryStateOnSurface tsos(propagator_->propagate(state_start, *my_plane));
   //  if (!tsos.isValid()) std::cout <<" tsos not valid "<< std::endl;

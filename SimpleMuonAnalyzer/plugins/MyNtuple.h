@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-const int nMaxRecoMuons = 2;
+const int nMaxRecoMuons = 8;
 const int nMaxEmtfMuons = 8;
 
 namespace{
@@ -28,6 +28,16 @@ struct MyNtuple
   float emtf_phi[nMaxEmtfMuons];
   int emtf_charge[nMaxEmtfMuons];
   int emtf_quality[nMaxEmtfMuons];
+
+  float unpEmtf_Pt[nMaxEmtfMuons];
+  float unpEmtf_Eta[nMaxEmtfMuons];
+  float unpEmtf_Theta[nMaxEmtfMuons];
+  float unpEmtf_Phi_glob[nMaxEmtfMuons];
+  int unpEmtf_Phi_fp[nMaxEmtfMuons];
+  int unpEmtf_Theta_fp[nMaxEmtfMuons];
+  int unpEmtf_Mode[nMaxEmtfMuons];
+  int unpEmtf_Mode_neighbor[nMaxEmtfMuons];
+  int unpEmtf_BX[nMaxEmtfMuons];
 
   float reco_pt[nMaxRecoMuons];
   float reco_eta[nMaxRecoMuons];
@@ -54,6 +64,17 @@ void MyNtuple::init()
     emtf_phi[i]= -99;
     emtf_charge[i] = - 99;
     emtf_quality[i] = - 99;
+
+    unpEmtf_Pt[i] = -99;
+    unpEmtf_Eta[i] = -99;
+    unpEmtf_Theta[i] = -99;
+    unpEmtf_Phi_glob[i] = -99;
+    unpEmtf_Phi_fp[i] = -99;
+    unpEmtf_Theta_fp[i] = -99;
+    unpEmtf_Mode[i] = -99;
+    unpEmtf_Mode_neighbor[i] = -99;
+    unpEmtf_BX[i] = -99;
+
   }
   for (unsigned i=0; i<nMaxRecoMuons; ++i){
     reco_pt[i]= -99;
@@ -85,6 +106,17 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("emtf_phi",emtf_phi,"emtf_phi[nEmtf]/F");
   t->Branch("emtf_charge",emtf_charge,"emtf_charge[nEmtf]/I");
   t->Branch("emtf_quality",emtf_quality,"emtf_quality[nEmtf]/I");
+
+  t->Branch("unpEmtf_Pt", unpEmtf_Pt, "unpEmtf_Pt[nEmtf]/F");
+  t->Branch("unpEmtf_Eta", unpEmtf_Eta, "unpEmtf_Eta[nEmtf]/F");
+  t->Branch("unpEmtf_Theta", unpEmtf_Theta, "unpEmtf_Theta[nEmtf]/F");
+  t->Branch("unpEmtf_Phi_glob", unpEmtf_Phi_glob, "unpEmtf_Phi_glob[nEmtf]/F");
+  t->Branch("unpEmtf_Theta_fp", unpEmtf_Theta_fp, "unpEmtf_Theta_fp[nEmtf]/I");
+  t->Branch("unpEmtf_Phi_fp", unpEmtf_Phi_fp, "unpEmtf_Phi_fp[nEmtf]/I");
+  t->Branch("unpEmtf_Mode", unpEmtf_Mode, "unpEmtf_Mode[nEmtf]/I");
+  t->Branch("unpEmtf_Mode_neighbor", unpEmtf_Mode_neighbor, "unpEmtf_Mode_neighbor[nEmtf]/I");
+  t->Branch("unpEmtf_BX", unpEmtf_BX, "unpEmtf_BX[nEmtf]/I");
+
 
   t->Branch("reco_pt",reco_pt,"reco_pt[nRecoMuon]/F");
   t->Branch("reco_eta",reco_eta,"reco_eta[nRecoMuon]/F");
