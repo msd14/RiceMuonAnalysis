@@ -44,6 +44,8 @@ struct MyNtuple
   float reco_phi[nMaxRecoMuons];
   float reco_eta_prop[nMaxRecoMuons];
   float reco_phi_prop[nMaxRecoMuons];
+  float reco_eta_st2[nMaxRecoMuons];
+  float reco_phi_st2[nMaxRecoMuons];
   int reco_charge[nMaxRecoMuons];
   int reco_isMediumMuon[nMaxRecoMuons];
   int reco_hasEMTFMatch[nMaxRecoMuons];
@@ -82,6 +84,8 @@ void MyNtuple::init()
     reco_phi[i]= -99;
     reco_eta_prop[i] = -99.;
     reco_phi_prop[i]= -99;
+    reco_eta_st2[i] = -99;
+    reco_phi_st2[i] = -99;
     reco_charge[i] = - 99;
     reco_isMediumMuon[i] = 0;
     reco_hasEMTFMatch[i] = 0;
@@ -123,6 +127,8 @@ TTree* MyNtuple::book(TTree *t, const std::string & name)
   t->Branch("reco_phi",reco_phi,"reco_phi[nRecoMuon]/F");
   t->Branch("reco_eta_prop",reco_eta_prop,"reco_eta_prop[nRecoMuon]/F");
   t->Branch("reco_phi_prop",reco_phi_prop,"reco_phi_prop[nRecoMuon]/F");
+  t->Branch("reco_eta_st2",reco_eta_st2, "reco_eta_st2[nRecoMuon]/F");
+  t->Branch("reco_phi_st2",reco_phi_st2, "reco_phi_st2[nRecoMuon]/F");
   t->Branch("reco_charge",reco_charge,"reco_charge[nRecoMuon]/I");
   t->Branch("reco_isMediumMuon",reco_isMediumMuon,"reco_isMediumMuon[nRecoMuon]/I");
   t->Branch("reco_hasEMTFMatch",reco_hasEMTFMatch,"reco_hasEMTFMatch[nRecoMuon]/I");

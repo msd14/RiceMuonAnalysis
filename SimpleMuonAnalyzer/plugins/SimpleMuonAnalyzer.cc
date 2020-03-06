@@ -37,6 +37,10 @@
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/GeometrySurface/interface/Cylinder.h"
 
+#include "Geometry/Records/interface/MuonGeometryRecord.h"
+#include "Geometry/CSCGeometry/interface/CSCGeometry.h"
+#include "Geometry/CSCGeometry/interface/CSCLayerGeometry.h"
+
 //#define DataFormats_L1TMuon_EMTFTrack_h
 
 static const float AVERAGE_GEM_Z(568.6); // [cm]
@@ -60,6 +64,7 @@ static const float AVERAGE_DT2_R(523);
 
 //using reco::recHitContainer;
 
+//using l1t::CSCSegmentCollection;
 using reco::MuonCollection;
 using l1t::RegionalMuonCandBxCollection;
 
@@ -77,6 +82,7 @@ private:
   /// general interface to propagation
   GlobalPoint propagateToR(const GlobalPoint &inner_point, const GlobalVector &inner_vector, float r, int charge) const;
 
+  edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::EDGetTokenT<MuonCollection> recoMuonToken_;
   edm::EDGetTokenT<RegionalMuonCandBxCollection> emtfToken_;
   edm::EDGetTokenT<std::vector<l1t::EMTFTrack>> emtfUnpTrack_token;
@@ -84,6 +90,8 @@ private:
   edm::ESHandle<MagneticField> magfield_;
   edm::ESHandle<Propagator> propagator_;
   edm::ESHandle<Propagator> propagatorOpposite_;
+  edm::ESHandle<CSCGeometry> csc_geom_;
+  const CSCGeometry* cscGeometry_;
 
   TTree *tree_;
   MyNtuple ntuple_;
@@ -93,6 +101,7 @@ private:
 
 SimpleMuonAnalyzer::SimpleMuonAnalyzer(const edm::ParameterSet& iConfig)
   :
+  cscSegmentToken_(consumes<CSCSegmentCollection>(iConfig.getParameter<edm::InputTag>("cscSegments"))),
   recoMuonToken_(consumes<MuonCollection>(iConfig.getParameter<edm::InputTag>("muons"))),
   emtfToken_(consumes<RegionalMuonCandBxCollection>(iConfig.getParameter<edm::InputTag>("emtf"))),
   emtfUnpTrack_token(consumes<std::vector<l1t::EMTFTrack>>(iConfig.getParameter<edm::InputTag>("unpEmtf"))),
@@ -113,11 +122,16 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
   iSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorAlong", propagator_);
   iSetup.get<TrackingComponentsRecord>().get("SteppingHelixPropagatorOpposite", propagatorOpposite_);
 
+  
+  iSetup.get<MuonGeometryRecord>().get(csc_geom_);
+  cscGeometry_ = &*csc_geom_;
+
   // initialize all variables
   ntuple_.init();
 
   using namespace edm;
 
+  //const auto& cscSegments = iEvent.get(cscSegmentToken_);
   const auto& recoMuons = iEvent.get(recoMuonToken_);
   const auto& emtfTracks = iEvent.get(emtfToken_);
   const auto& emtfUnpTracks = iEvent.get(emtfUnpTrack_token);
@@ -147,16 +161,31 @@ SimpleMuonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSe
 
       const GlobalPoint& prop_point(propagateToZ(muon_point, muon_vector,
                                                zStation2, recoMuon.charge()));
+      if ( abs(recoMuon.eta()) < 2.4 and abs(recoMuon.eta()) > 1.2 ) {
+	//std::cout << "Muon point (x,y,z):" << muon_point << std::endl;
+	//std::cout << "zSt2:" << zStation2 << std::endl;
+	//std::cout << "Prop point: " << prop_point << std::endl;
+	//std::cout << "Total momentum: " << sqrt( pow(recoMuon.momentum().x(),2) + pow(recoMuon.momentum().y(),2) + pow(recoMuon.momentum().z(),2) ) << std::endl;
+	//std::cout << "muon pt " << recoMuon.pt() << std::endl;
+	//std::cout << "muon eta " << recoMuon.eta() << " " << "muon phi " <<recoMuon.phi() << std::endl;
+	//std::cout << "muon prop eta " << prop_point.eta() << " " << "muon prop phi " <<prop_point.phi() << std::endl;
+	//std::cout << "-----------------" << std::endl;
+      }
 
-      //std::cout << "Muon point (x,y,z):" << muon_point << std::endl;
-      //std::cout << "zSt2:" << zStation2 << std::endl;
-      std::cout << "Prop point: " << prop_point << std::endl;
-      std::cout << "Total momentum: " << sqrt( pow(recoMuon.momentum().x(),2) + pow(recoMuon.momentum().y(),2) + pow(recoMuon.momentum().z(),2) ) << std::endl;
-      std::cout << "muon pt " << recoMuon.pt() << std::endl;
-      std::cout << "muon eta " << recoMuon.eta() << " " << "muon phi " <<recoMuon.phi() << std::endl;
-      std::cout << "muon prop eta " << prop_point.eta() << " " << "muon prop phi " <<prop_point.phi() << std::endl;
-      std::cout << "-----------------" << std::endl;
+      const auto& mumatches = recoMuon.matches();
+      for (const auto& r : mumatches){
+	if (r.detector()==2 and r.station()==2) {
+	  //std::cout << "matches " << r.detector() << " " << r.station() << " " << r.x << " " << r.y << " " << CSCDetId(r.id) << std::endl;
+	  const LocalPoint lp(r.x, r.y, 0.);
+	  const GlobalPoint& gp = cscGeometry_->idToDet(CSCDetId(r.id))->surface().toGlobal(lp);
+	  ntuple_.reco_eta_st2[i] = gp.eta();
+	  ntuple_.reco_phi_st2[i] = gp.phi();
+	  //std::cout << "St2 gp eta: " << gp.eta() << ", St2 gp phi: " << gp.phi() << std::endl;
+	  break;
+	}
+      }
 
+      //std::cout << "------------" << std::endl;
       // fill basic muon quantities
       ntuple_.reco_pt[i] = recoMuon.pt();
       ntuple_.reco_eta[i] = recoMuon.eta();
@@ -225,7 +254,10 @@ SimpleMuonAnalyzer::propagateToZ(const GlobalPoint &inner_point,
   Plane::PlanePointer my_plane(Plane::build(pos, rot));
 
   FreeTrajectoryState state_start(inner_point, inner_vec, charge, &*magfield_);
-  std::cout <<"state_start  position "<< state_start.position()<<" momentum "<< state_start.momentum()<<" charge "<<state_start.charge() << std::endl;
+  //if ( abs(recoMuon.eta()) < 2.4 and abs(recoMuon.eta()) > 1.2 ) {
+
+  //std::cout <<"state_start  position "<< state_start.position()<<" momentum "<< state_start.momentum()<<" charge "<<state_start.charge() << std::endl;
+ 
   //if (state_start.hasError()) std::cout <<"state_start has error  "<< std::endl;
 
   TrajectoryStateOnSurface tsos(propagator_->propagate(state_start, *my_plane));

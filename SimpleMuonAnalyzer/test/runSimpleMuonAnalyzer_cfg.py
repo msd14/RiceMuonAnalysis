@@ -11,26 +11,28 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorOpposite_cfi')
 process.load('TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAlong_cfi')
+process.load('Configuration.StandardSequences.GeometryDB_cff')
 
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(50000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.options = cms.untracked.PSet( wantSummary = cms.untracked.bool(True) )
 
 process.source = cms.Source(
   "PoolSource",
-  fileNames = cms.untracked.vstring(
-      '/store/user/mdecaro/SingleMuon/SingleMuon_Run2018A-17Sep2018-v2_AOD/191004_152709/0000/Filter_1.root'
-  ),
-)
-
+   fileNames = cms.untracked.vstring('/store/user/mdecaro/SingleMuon/SingleMuon_Run2017C-17Nov2017-v1_useParent/200103_210545/0000/Filter_518.root'),
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      )
+ 
 process.SimpleMuonAnalyzer = cms.EDAnalyzer(
     "SimpleMuonAnalyzer",
     verbose = cms.bool(False),
+    cscSegments = cms.InputTag("cscSegments"),
     muons = cms.InputTag("muons"),
     emtf = cms.InputTag("gmtStage2Digis","EMTF"),
+    #unpEmtf = cms.InputTag("simEmtfDigis"), #Monte carlo
+    unpEmtf = cms.InputTag("emtfStage2Digis"), #SingleMu 2017C
 )
 
 process.TFileService = cms.Service(
