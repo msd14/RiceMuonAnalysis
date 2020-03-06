@@ -7,6 +7,7 @@ from ROOT import *
 import numpy as np
 from array import *
 import Helper as h
+from termcolor import colored
 
 print '------> Importing Root File'
 
@@ -17,50 +18,52 @@ printouts = False
 plot_kinematics = False
 plot_efficiency = True
 
-## ================ Event branches ======================
+print 'Configuration settings:'
+if printouts==True: print colored('Printouts: ON', 'green')
+if printouts==False: print colored('Printouts: OFF', 'red')
+if plot_kinematics==True: print colored('Plot kinematics: ON', 'green')
+if plot_kinematics==False: print colored('Plot kinematics: OFF', 'red')
+if plot_efficiency==True: print colored('Plot efficiencies: ON', 'green')
+if plot_efficiency==False: print colored('Plot efficiencies: OFF', 'red')
+
+## ============== Event branches and Output================
 evt_tree  = TChain('SimpleMuonAnalyzer/Events')
 
 out_file  = TFile('Histograms.root','recreate')
 
 ## ================ Read input files ======================
-dataset = int(input("Run over: (Data:1, Monte Carlo:2):"))
+dataset = int(input("Run over: (SingleMu2017C:1, Monte Carlo:2):"))
 
 if dataset == 1:
-  dir1 = 'root://cmsxrootd.fnal.gov//store/user/mdecaro/SingleMuon/SingleMuon_Run2017C-17Nov2017-v1_useParent/200103_210545/0000/Ntuples2/'  
-  nFiles = int(input("How many input data files? (Min:1, Max: 416):"))
+  dir1 = '/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_6_0/src/L1Ntuples/'
+  nEvents = int(input("Run over how many SingleMu events? (Min:1, Max:180032):"))
 
-  if nFiles>416 or nFiles<1: 
-    print "Choose a number of input files between 1 than 416."
+
+  if nEvents>180032 or nEvents<1: 
+    print colored("Choose a number of input SingleMu events between 1 and 180,032.", 'red')
     sys.exit()
 
-  i=1
-  while i<(nFiles+1):
-    file_name = dir1+"L1Ntuple_"+str(i)+".root"
-    print 'Loading file:', "L1Ntuple_"+str(i)+".root"
-    evt_tree.Add(file_name)
-    i+=1
+  print colored('Loading file: L1Ntuple.root', 'green')
+  file_name = dir1+"L1Ntuple.root" 
+  evt_tree.Add(file_name)
   
 
 if dataset == 2:
-  dir1 = '/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_6_0/src/MSSMD_Ntuples/'
-  nFiles = int(input("How many input MC files? (Min:1, Max:11):"))
-
-  if nFiles>11 or nFiles<1: 
-    print "Choose a number of input MC files between 1 than 11."
+  dir1 = '/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_6_0/src/MSSMD_Ntuples/hits/'
+  nEvents = int(input("Run over how many MC events? (Min:1, Max:137422):"))
+  
+  if nEvents>137422 or nEvents<1: 
+    print colored('Error: Choose a number of input MC events between 1 and 137,422.', 'red')
     sys.exit()
 
-  i=1
-  while i<(nFiles+1): 
-      print 'Loading file:', "L1Ntuple_MC_"+str(i)+".root"
-      file_name = dir1+"L1Ntuple_MC_"+str(i)+".root"
-      evt_tree.Add(file_name)
-      i+=1
+  print colored('Loading file: L1Ntuple_MC.root', 'green')
+  file_name = dir1+"L1Ntuple_MC.root" 
+  evt_tree.Add(file_name)
+
 
 if dataset!=1 and dataset!=2:
-  print 'Please choose either data:1 or monte carlo:2'
+  print colored('Error: Please choose either data:1 or monte carlo:2', 'red')
   sys.exit()
-
-print 'Some files will give an error message if they failed processing.'
 
 
 ############################################
@@ -106,13 +109,12 @@ h_dEta_numer = TH1D('h_dEta_numer', '', 64, -0.3, 0.3)
 h_dPhi_numer = TH1D('h_dPhi_numer', '', 64, -0.3, 0.3)
 h_dR_numer   = TH1D('h_dR_numer', '', 64, 0, 0.3)
 
-h_dEta2_denom = TH1D('h_dEta2_denom', '', 64, -0.3, 0.3)
-h_dPhi2_denom = TH1D('h_dPhi2_denom', '', 64, -0.3, 0.3)
-h_dR2_denom   = TH1D('h_dR2_denom', '', 64, 0, 0.3)
-h_dEta2_numer = TH1D('h_dEta2_numer', '', 64, -0.3, 0.3)
-h_dPhi2_numer = TH1D('h_dPhi2_numer', '', 64, -0.3, 0.3)
-h_dR2_numer   = TH1D('h_dR2_numer', '', 64, 0, 0.3)
-
+if dataset==1:
+  h_2D_numer = TH2D('h_2D_numer', '', 32, -0.7, 0.7, 32, -0.7, 0.7)
+  h_2D_denom = TH2D('h_2D_denom', '', 32, -0.7, 0.7, 32, -0.7, 0.7)
+else:
+  h_2D_numer = TH2D('h_2D_numer', '', 32, -0.3, 0.3, 32, -0.6, 0.6)
+  h_2D_denom = TH2D('h_2D_denom', '', 32, -0.3, 0.3, 32, -0.6, 0.6)
 
 h_phivertex_phiprop = TH1D('h_phivertex_phiprop', '', phi_bins[0], -0.2, 0.2)
 
@@ -136,7 +138,8 @@ denom_dR_0200 = 0. ; numer_dR_0200 = 0.
 #######################################
 #### Event loop.
 #######################################
-for iEvt in range(evt_tree.GetEntries()):
+#for iEvt in range(evt_tree.GetEntries()):
+for iEvt in range(nEvents):
   if MAX_EVT > 0 and iEvt > MAX_EVT: break
   if iEvt % PRT_EVT is 0: print 'Event #', iEvt
   
@@ -166,7 +169,7 @@ for iEvt in range(evt_tree.GetEntries()):
   endcap_positive=0; endcap_negative=0
   temp1 = 0.6 ; temp2 = 0.6
   #For the MC, there can be up to eight offline reco muons per event. 
-  #Find a muon pair with dR < 0.5 that pass through an endcap.
+  #Use tag-and-probe method to find a pair passing through an endcap.
   index = [-1, -1] ; count=0
   for i in range(len(evt_tree.reco_eta)):
     for j in range(len(evt_tree.reco_eta)):
@@ -183,7 +186,7 @@ for iEvt in range(evt_tree.GetEntries()):
   if temp1 == temp2: continue
   if temp1 > 0.5 and temp2 > 0.5: continue #
 
-  #print temp1, temp2
+  #There may be more than one pair, so choose the better pair.
   if temp1 < temp2: index = index1
   if temp1 > temp2: index = index2
 
@@ -199,8 +202,8 @@ for iEvt in range(evt_tree.GetEntries()):
       reco_pT.append(evt_tree.reco_pt[j])
       reco_eta.append(evt_tree.reco_eta[j])
       reco_phi.append(evt_tree.reco_phi[j])
-      reco_eta_prop.append(evt_tree.reco_eta_prop[j])
-      reco_phi_prop.append(evt_tree.reco_phi_prop[j])
+      reco_eta_prop.append(evt_tree.reco_eta_st2[j])
+      reco_phi_prop.append(evt_tree.reco_phi_st2[j])
       recoismed.append(evt_tree.reco_isMediumMuon[j])
 
   else:
@@ -209,8 +212,8 @@ for iEvt in range(evt_tree.GetEntries()):
       reco_pT.append(evt_tree.reco_pt[j])
       reco_eta.append(evt_tree.reco_eta[j])
       reco_phi.append(evt_tree.reco_phi[j])
-      reco_eta_prop.append(evt_tree.reco_eta_prop[j])
-      reco_phi_prop.append(evt_tree.reco_phi_prop[j])
+      reco_eta_prop.append(evt_tree.reco_eta_st2[j])
+      reco_phi_prop.append(evt_tree.reco_phi_st2[j])
       recoismed.append(evt_tree.reco_isMediumMuon[j])
 
 
@@ -344,18 +347,12 @@ for iEvt in range(evt_tree.GetEntries()):
   dPhi = h.CalcDPhi(reco_phi_prop[0],reco_phi_prop[1])
   dR = h.CalcDR(reco_eta_prop[0], reco_phi_prop[0], reco_eta_prop[1], reco_phi_prop[1])
 
-  dEta2 = reco_eta[0] - reco_eta[1]
-  dPhi2 = h.CalcDPhi(reco_phi[0],reco_phi[1])
-  dR2 = h.CalcDR(reco_eta[0], reco_phi[0], reco_eta[1], reco_phi[1])
-
   #Denominator histogram.
   h_dEta_denom.Fill(dEta)
   h_dPhi_denom.Fill(dPhi)
   h_dR_denom.Fill(dR)
 
-  h_dEta2_denom.Fill(dEta2)
-  h_dPhi2_denom.Fill(dPhi2)
-  h_dR2_denom.Fill(dR2)
+  h_2D_denom.Fill(dEta,dPhi)
 
 
   if dR <= 0.30 and dR > 0.20: denom_dR_3020+=1
@@ -375,7 +372,6 @@ for iEvt in range(evt_tree.GetEntries()):
   reco_dEta_prop.append(reco_eta_prop[0] - reco_eta_prop[1])
   reco_dPhi_prop.append(reco_phi_prop[0] - reco_phi_prop[1])
 
-
   EMTFmatch_count+=1
 
   #Numerator histogram.
@@ -383,9 +379,8 @@ for iEvt in range(evt_tree.GetEntries()):
   h_dPhi_numer.Fill(dPhi)
   h_dR_numer.Fill(dR)
 
-  h_dEta2_numer.Fill(dEta2)
-  h_dPhi2_numer.Fill(dPhi2)
-  h_dR2_numer.Fill(dR2)
+  h_2D_numer.Fill(dEta,dPhi)
+
 
   if dR <= 0.30 and dR > 0.20: numer_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: numer_dR_2010+=1
@@ -421,6 +416,7 @@ print 'Averaged efficiency binned:'
 ### Write output file with histograms and efficiencies ###
 ############################################################
 
+
 if plot_efficiency == True:
   c57 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c57.SetGrid()
@@ -430,8 +426,7 @@ if plot_efficiency == True:
   else: eff.SetTitle('Trigger Efficiency vs #Delta #eta (MC)')
   gPad.Update()
   graph = eff.GetPaintedGraph()
-  graph.SetMinimum(0)
-  graph.SetMaximum(1)
+  graph.SetMinimum(0) ; graph.SetMaximum(1)
   if dataset==1: c57.SaveAs("tests2/eff_dEta.png")
   else: c57.SaveAs("tests2/eff_dEta_MC.png")
   c57.Close()
@@ -464,13 +459,20 @@ if plot_efficiency == True:
   else: c59.SaveAs("tests2/eff_dR_MC.png")
   c59.Close()
 
+  h_2D_numer.Divide(h_2D_denom)
+  h_2D_numer.Draw("colz")
+  if dataset==1: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency')
+  else: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency (MC)')
+  h_2D_numer.GetXaxis().SetTitle('#Delta #eta') ; h_2D_numer.GetYaxis().SetTitle('#Delta #phi') 
+  raw_input('a')
+
 ################
 ################
 ################
 out_file.cd()
 
 if plot_kinematics == True:
-  print 'Kinematic plots written to Histograms.root'
+  print colored('Kinematic plots written to Histograms.root', 'green')
 
   if dataset==1:
     h_reco_pt.SetTitle('All reco muon pT')
@@ -532,35 +534,31 @@ if plot_kinematics == True:
   h_emtf_phi.Write() ; h_emtf1_phi.Write() ; h_emtf2_phi.Write()
   h_nReco.Write() ; h_nEmtf.Write()
 
-  #temp1 = np.array(reco_dEta_prop) ; temp2 = np.array(reco_dPhi_prop)
-  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  #EtaPhiScatter = TGraph(len(reco_dEta_prop), temp1, temp2)
-  #EtaPhiScatter.Draw("A*")
-  #EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
-  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
-  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta')
-  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #phi')
-  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated)')
-  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated) (MC)')
-  #gPad.Update()
-  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_prop_Scatter.png")
-  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_prop_Scatter_MC.png")
-  #c37.Close()
+  temp1 = np.array(reco_dEta_prop) ; temp2 = np.array(reco_dPhi_prop)
+  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  EtaPhiScatter = TGraph(len(reco_dEta_prop), temp1, temp2)
+  EtaPhiScatter.Draw("A*")
+  EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
+  EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
+  if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated)')
+  if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated) (MC)')
+  gPad.Update()
+  if dataset==1: c37.SaveAs("trees/dEta_dPhi_prop_Scatter.png")
+  if dataset==2: c37.SaveAs("trees/dEta_dPhi_prop_Scatter_MC.png")
+  c37.Close()
 
-  #temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
-  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  #EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
-  #EtaPhiScatter.Draw("A*")
-  #EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
-  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3)
-  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta')
-  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #phi')
-  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex)')
-  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex) (MC)')
-  #gPad.Update()
-  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
-  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
-  #c37.Close()
+  temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
+  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
+  EtaPhiScatter.Draw("A*")
+  EtaPhiScatter.GetXaxis().SetRangeUser(-0.5,0.5) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.5,0.5)
+  EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
+  if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex)')
+  if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex) (MC)')
+  gPad.Update()
+  if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
+  if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
+  c37.Close()
 
   #c35 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
   #gPad.SetLogy()
