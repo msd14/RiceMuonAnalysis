@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+
+#//////////////////////////////////////////////////////////////////
+#///  Selection and plotting macro for Nearby Muon Study        ///
+#///               Matthew Decaro                               ///
+#///                March 6, 2020                               ///
+#//////////////////////////////////////////////////////////////////
+
 print '------> Setting Environment'
 
 import sys
@@ -165,7 +172,6 @@ for iEvt in range(nEvents):
   for i in range(len(evt_tree.reco_eta)):
     reco_eta.append(evt_tree.reco_eta[i])
 
- 
   endcap_positive=0; endcap_negative=0
   temp1 = 0.6 ; temp2 = 0.6
   #For the MC, there can be up to eight offline reco muons per event. 
@@ -351,9 +357,7 @@ for iEvt in range(nEvents):
   h_dEta_denom.Fill(dEta)
   h_dPhi_denom.Fill(dPhi)
   h_dR_denom.Fill(dR)
-
   h_2D_denom.Fill(dEta,dPhi)
-
 
   if dR <= 0.30 and dR > 0.20: denom_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: denom_dR_2010+=1
@@ -378,9 +382,7 @@ for iEvt in range(nEvents):
   h_dEta_numer.Fill(dEta)
   h_dPhi_numer.Fill(dPhi)
   h_dR_numer.Fill(dR)
-
   h_2D_numer.Fill(dEta,dPhi)
-
 
   if dR <= 0.30 and dR > 0.20: numer_dR_3020+=1
   if dR <= 0.20 and dR > 0.10: numer_dR_2010+=1
