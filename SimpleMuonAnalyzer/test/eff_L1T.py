@@ -15,6 +15,7 @@ import numpy as np
 from array import *
 import Helper as h
 from termcolor import colored
+from ROOT import gROOT
 
 print '------> Importing Root File'
 
@@ -22,7 +23,7 @@ print '------> Importing Root File'
 MAX_EVT  = -1 ## Maximum number of events to process
 PRT_EVT  = 10000 ## Print every Nth event
 printouts = False
-plot_kinematics = False
+plot_kinematics = True
 plot_efficiency = True
 
 print 'Configuration settings:'
@@ -316,10 +317,6 @@ for iEvt in range(nEvents):
 
   h_phivertex_phiprop.Fill(reco_phi[0] - reco_phi_prop[0])
   h_phivertex_phiprop.Fill(reco_phi[1] - reco_phi_prop[1])
-  #reco_dEta.append(reco_eta[0] - reco_eta[1])
-  #reco_dPhi.append(reco_phi[0] - reco_phi[1])
-  #reco_dEta_prop.append(reco_eta_prop[0] - reco_eta_prop[1])
-  #reco_dPhi_prop.append(reco_phi_prop[0] - reco_phi_prop[1])
   ## ================================================
   ## ================================================
 
@@ -417,61 +414,65 @@ print 'Averaged efficiency binned:'
 ############################################################
 ### Write output file with histograms and efficiencies ###
 ############################################################
-
+out_file.cd()
 
 if plot_efficiency == True:
+  print colored('Efficiency plots written to Histograms.root', 'green')
+
   c57 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c57.SetGrid()
   eff = TEfficiency(h_dEta_numer, h_dEta_denom)
-  eff.Draw()
-  if dataset==1: eff.SetTitle('Trigger Efficiency vs #Delta #eta')
-  else: eff.SetTitle('Trigger Efficiency vs #Delta #eta (MC)')
+  eff.Draw("AP")
+  if dataset==1: eff.SetTitle('2017C ; #Delta #eta_{(between reco muons)} ; Trigger efficiency')
+  else: eff.SetTitle('Monte Carlo MSSMD ; #Delta #eta_{(between reco muons)} ; Trigger efficiency')
   gPad.Update()
   graph = eff.GetPaintedGraph()
   graph.SetMinimum(0) ; graph.SetMaximum(1)
   if dataset==1: c57.SaveAs("tests2/eff_dEta.png")
   else: c57.SaveAs("tests2/eff_dEta_MC.png")
+  eff.Write("efficiency_dEta")
   c57.Close()
 
   c58 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c58.SetGrid()
-  eff2 = TEfficiency(h_dPhi_numer, h_dPhi_denom)
-  eff2.Draw()
-  if dataset==1: eff2.SetTitle('Trigger Efficiency vs #Delta #phi')
-  else: eff2.SetTitle('Trigger Efficiency vs #Delta #phi (MC)')
+  eff = TEfficiency(h_dPhi_numer, h_dPhi_denom)
+  eff.Draw()
+  if dataset==1: eff.SetTitle('2017C ; #Delta #phi_{(between reco muons)} ; Trigger efficiency')
+  else: eff.SetTitle('Monte Carlo MSSMD ; #Delta #phi_{(between reco muons)} ; Trigger efficiency')
   gPad.Update()
-  graph = eff2.GetPaintedGraph()
+  graph = eff.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
   if dataset==1: c58.SaveAs("tests2/eff_dPhi.png")
   else: c58.SaveAs("tests2/eff_dPhi_MC.png")
+  eff.Write("efficiency_dPhi")
   c58.Close()
 
   c59 = TCanvas( 'c1', 'eff', 200, 10, 700, 500)
   c59.SetGrid()
-  eff3 = TEfficiency(h_dR_numer, h_dR_denom)
-  eff3.Draw()
-  if dataset==1: eff3.SetTitle('Trigger Efficiency vs #Delta R')
-  else: eff3.SetTitle('Trigger Efficiency vs #Delta R (MC)')
+  eff = TEfficiency(h_dR_numer, h_dR_denom)
+  eff.Draw()
+  if dataset==1: eff.SetTitle('2017C ; #Delta R_{(between reco muons)} ; Trigger efficiency')
+  else: eff.SetTitle('Monte Carlo MSSMD ; #Delta R_{(between reco muons)} ; Trigger efficiency')
   gPad.Update()
-  graph = eff3.GetPaintedGraph()
+  graph = eff.GetPaintedGraph()
   graph.SetMinimum(0)
   graph.SetMaximum(1)
   if dataset==1: c59.SaveAs("tests2/eff_dR.png")
   else: c59.SaveAs("tests2/eff_dR_MC.png")
+  eff.Write("efficiency_dR")
   c59.Close()
 
-  h_2D_numer.Divide(h_2D_denom)
-  h_2D_numer.Draw("colz")
-  if dataset==1: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency')
-  else: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency (MC)')
-  h_2D_numer.GetXaxis().SetTitle('#Delta #eta') ; h_2D_numer.GetYaxis().SetTitle('#Delta #phi') 
-  raw_input('a')
+  #h_2D_numer.Divide(h_2D_denom)
+  #h_2D_numer.Draw("colz")
+  #if dataset==1: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency')
+  #else: h_2D_numer.SetTitle('#Delta #eta vs #Delta #phi 2D Efficiency (MC)')
+  #h_2D_numer.GetXaxis().SetTitle('#Delta #eta') ; h_2D_numer.GetYaxis().SetTitle('#Delta #phi') 
+  #raw_input('a')
 
 ################
 ################
 ################
-out_file.cd()
 
 if plot_kinematics == True:
   print colored('Kinematic plots written to Histograms.root', 'green')
@@ -536,31 +537,31 @@ if plot_kinematics == True:
   h_emtf_phi.Write() ; h_emtf1_phi.Write() ; h_emtf2_phi.Write()
   h_nReco.Write() ; h_nEmtf.Write()
 
-  temp1 = np.array(reco_dEta_prop) ; temp2 = np.array(reco_dPhi_prop)
-  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  EtaPhiScatter = TGraph(len(reco_dEta_prop), temp1, temp2)
-  EtaPhiScatter.Draw("A*")
-  EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
-  EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
-  if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated)')
-  if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated) (MC)')
-  gPad.Update()
-  if dataset==1: c37.SaveAs("trees/dEta_dPhi_prop_Scatter.png")
-  if dataset==2: c37.SaveAs("trees/dEta_dPhi_prop_Scatter_MC.png")
-  c37.Close()
+  #temp1 = np.array(reco_dEta_prop) ; temp2 = np.array(reco_dPhi_prop)
+  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #EtaPhiScatter = TGraph(len(reco_dEta_prop), temp1, temp2)
+  #EtaPhiScatter.Draw("A*")
+  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.3,0.3) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.3,0.3)
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
+  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated)')
+  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (propagated) (MC)')
+  #gPad.Update()
+  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_prop_Scatter.png")
+  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_prop_Scatter_MC.png")
+  #c37.Close()
 
-  temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
-  c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
-  EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
-  EtaPhiScatter.Draw("A*")
-  EtaPhiScatter.GetXaxis().SetRangeUser(-0.5,0.5) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.5,0.5)
-  EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
-  if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex)')
-  if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex) (MC)')
-  gPad.Update()
-  if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
-  if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
-  c37.Close()
+  #temp1 = np.array(reco_dEta) ; temp2 = np.array(reco_dPhi)
+  #c37 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
+  #EtaPhiScatter = TGraph(len(reco_dEta), temp1, temp2)
+  #EtaPhiScatter.Draw("A*")
+  #EtaPhiScatter.GetXaxis().SetRangeUser(-0.5,0.5) ; EtaPhiScatter.GetYaxis().SetRangeUser(-0.5,0.5)
+  #EtaPhiScatter.GetXaxis().SetTitle('#Delta #eta') ; EtaPhiScatter.GetYaxis().SetTitle('#Delta #phi')
+  #if dataset==1:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex)')
+  #if dataset==2:EtaPhiScatter.SetTitle('#Delta #eta vs #Delta #phi scatter (vertex) (MC)')
+  #gPad.Update()
+  #if dataset==1: c37.SaveAs("trees/dEta_dPhi_Scatter.png")
+  #if dataset==2: c37.SaveAs("trees/dEta_dPhi_Scatter_MC.png")
+  #c37.Close()
 
   #c35 = TCanvas( 'c1', 'test scatter', 200, 10, 700, 500)
   #gPad.SetLogy()
