@@ -363,7 +363,6 @@ for iEvt in range(nEvents):
   if dR <= 0.06 and dR > 0.04: denom_dR_0604+=1
   if dR <= 0.04 and dR > 0.02: denom_dR_0402+=1
   if dR <= 0.02: denom_dR_0200+=1
-  
 
   if len(unpEmtf_Eta)<2: continue
   if best1>0.2 or best2>0.2: continue
