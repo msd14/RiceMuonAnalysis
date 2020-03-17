@@ -36,13 +36,12 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("LHESource",
-    dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-    #fileNames = cms.untracked.vstring('file:MSSMD_100k_50mm_1.lhe', 'file:MSSMD_100k_50mm_2.lhe', 'file:MSSMD_100k_50mm_3.lhe', 'file:MSSMD_100k_50mm_4.lhe', 'file:MSSMD_100k_50mm_5.lhe', 'file:MSSMD_100k_50mm_6.lhe', 'file:MSSMD_100k_50mm_7.lhe', 'file:MSSMD_100k_50mm_8.lhe', 'file:MSSMD_100k_50mm_9.lhe', 'file:MSSMD_100k_50mm_10.lhe'),
-    fileNames = cms.untracked.vstring('file:/uscms/home/mdecaro/nobackup/Dimuon/CMSSW_10_2_3/src/lhe_files/MSSMD_100k_50mm_1.lhe'),
-    inputCommands = cms.untracked.vstring(
-        'keep *', 
-        'drop LHEXMLStringProduct_*_*_*'
-    )
+    #dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
+    fileNames = cms.untracked.vstring('file:MSSMD_100k_50mm_1.lhe', 'file:MSSMD_100k_50mm_2.lhe'),
+    #inputCommands = cms.untracked.vstring(
+        #'keep *', 
+        #'drop LHEXMLStringProduct_*_*_*'
+                            #)
 )
 
 process.options = cms.untracked.PSet(
