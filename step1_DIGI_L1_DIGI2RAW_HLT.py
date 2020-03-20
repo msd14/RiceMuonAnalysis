@@ -6,8 +6,11 @@
 import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
+from L1Trigger.L1TMuonEndCap.customise_Phase2 import customise as customise_Phase2
 
-process = cms.Process('HLT',eras.Run2_2018)
+#process = cms.Process('HLT',eras.Run2_2018)
+process = cms.Process('REPR',eras.Phase2C8_trigger)
+process = customise_Phase2(process)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -23,6 +26,12 @@ process.load('Configuration.StandardSequences.DigiToRaw_cff')
 process.load('HLTrigger.Configuration.HLT_2018v32_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D41Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D41_cff')
+process.load('Configuration.StandardSequences.SimL1Emulator_cff')
+process.load('Configuration.StandardSequences.SimL1EmulatorRepack_FullMC_cff')
+process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi') 
+process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(-1)
@@ -31,7 +40,8 @@ process.maxEvents = cms.untracked.PSet(
 # Input source
 process.source = cms.Source("PoolSource",
     dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-    fileNames = cms.untracked.vstring('/store/user/mdecaro/MSSMD_step0_GENSIM_test/MSSMD_step0_GENSIM_test/200213_22472/0000/step0_2.root'),
+    #fileNames = cms.untracked.vstring('/store/user/mdecaro/MSSMD_EMTFpp_step0_GENSIM_12/MSSMD_EMTFpp_step0_GENSIM_12/200317_212802/0000/step0_2.root'),
+    fileNames = cms.untracked.vstring('file:step0.root'),
     inputCommands = cms.untracked.vstring(
         'keep *', 
         'drop *_genParticles_*_*', 
@@ -50,7 +60,7 @@ process.source = cms.Source("PoolSource",
         'drop *_genMetCaloAndNonPrompt_*_*', 
         'drop *_genMetTrue_*_*', 
         'drop *_genMetIC5GenJs_*_*'
-    ),
+                            ),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -82,7 +92,8 @@ process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
 # Other statements
 process.mix.digitizers = cms.PSet(process.theDigitizersValid)
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '102X_upgrade2018_realistic_v11', '')
+#process.GlobalTag = GlobalTag(process.GlobalTag, '102X_upgrade2018_realistic_v11', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '103X_upgrade2023_realistic_v2', '')
 
 # Path and EndPath definitions
 process.digitisation_step = cms.Path(process.pdigi_valid)
