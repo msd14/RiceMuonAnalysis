@@ -6,9 +6,11 @@
 import FWCore.ParameterSet.Config as cms
 
 from Configuration.StandardSequences.Eras import eras
+from L1Trigger.L1TMuonEndCap.customise_Phase2 import customise as customise_Phase2
 
 #process = cms.Process('SIM',eras.Run2_2018)
 process = cms.Process('REPR',eras.Phase2C8_trigger)
+process = customise_Phase2(process)
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -31,13 +33,13 @@ process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 
 
 process.maxEvents = cms.untracked.PSet(
-        input = cms.untracked.int32(10)
+        input = cms.untracked.int32(30)
 )
 
 # Input source
 process.source = cms.Source("LHESource",
     #dropDescendantsOfDroppedBranches = cms.untracked.bool(False),
-    fileNames = cms.untracked.vstring('file:MSSMD_100k_50mm_1.lhe', 'file:MSSMD_100k_50mm_2.lhe'),
+    fileNames = cms.untracked.vstring('file:MSSMD_100k_50mm_9.lhe', 'file:MSSMD_100k_50mm_10.lhe'),
     #inputCommands = cms.untracked.vstring(
         #'keep *', 
         #'drop LHEXMLStringProduct_*_*_*'
